@@ -282,12 +282,12 @@ void distribuir_jugadores(shared_memories *sm) {
         int x = posiciones[i][0];
         int y = posiciones[i][1];
 
-        // Asignar coordenadas al jugador
+        // Asigna coordenadas al jugador
         state->jugadores[i].coordenadas[0] = x;
         state->jugadores[i].coordenadas[1] = y;
 
-        // Marcar la celda como ocupada por el jugador (valor negativo)
-        // -1 para jugador 0, -2 para jugador 1, etc.
+        // Marca la celda como ocupada por el jugador con un numero negativo
+        // -1 para jugador 0, -2 para jugador 1, etc
         state->tablero[y * ancho + x] = -(i + 1);
 
         printf("Jugador %d posicionado en (%d, %d)\n", i, x, y);
@@ -365,19 +365,19 @@ int main(int argc, char *argv[]) {
         printf("\n");
     }
 
-    // Modificar una celda del tablero
+    // TEST- Modificar una celda del tablero
     int test_x = 1, test_y = 1;
     int idx = test_y * state->ancho + test_x;
-    printf("\nModificando celda (%d,%d) de %d a 99...\n", test_x, test_y, state->tablero[idx]);
-    state->tablero[idx] = 99;
+    printf("\nModificando celda (%d,%d) de %d a 9...\n", test_x, test_y, state->tablero[idx]);
+    state->tablero[idx] = 9;
     printf("Nuevo valor: %d\n", state->tablero[idx]);
 
-    // Modificar puntaje de un jugador
+    // TEST- Modificar puntaje de un jugador
     printf("\nSumando 10 puntos al Jugador 0 (puntaje actual: %u)...\n", state->jugadores[0].puntaje);
     state->jugadores[0].puntaje += 10;
     printf("Nuevo puntaje Jugador 0: %u\n", state->jugadores[0].puntaje);
 
-    // Estado final
+    // Muestro estado final
     printf("\n--- Estado final del tablero ---\n");
     for (int j = 0; j < state->cantidad_jugadores; j++) {
         printf("Jugador %d: nombre='%s', puntaje=%u, pos=(%u,%u)\n", j, state->jugadores[j].nombre, state->jugadores[j].puntaje, state->jugadores[j].coordenadas[0], state->jugadores[j].coordenadas[1]);
