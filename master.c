@@ -1,52 +1,6 @@
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <stdbool.h>
-#include <semaphore.h>
-#define MAX_PLAYERS 9
 
-typedef struct {
-    char nombre[16]; // Nombre del jugador
-    unsigned int puntaje; // Puntaje
-    unsigned int movimientos_invalidos; // Cantidad de solicitudes de movimientos inválidas realizadas
-    unsigned int movimientos_validos; // Cantidad de solicitudes de movimientos válidas realizadas
-    unsigned short coordenadas[2]; // Coordenadas x e y en el tablero
-    pid_t pid; // Identificador de proceso
-    bool bloqueado; // Indica si el jugador está bloqueado
-} jugador;
+#include "estructuras.h"
 
-
-typedef struct {
-    unsigned short ancho; // Ancho del tablero
-    unsigned short alto; // Alto del tablero
-    unsigned int cantidad_jugadores; // Cantidad de jugadores
-    jugador jugadores[MAX_PLAYERS]; // Lista de jugadores
-    bool juego_terminado; // Indica si el juego se ha terminado
-    int tablero[]; // Puntero al comienzo del tablero. fila-0, fila-1, ..., fila-n-1
-} tablero;
-
-typedef struct {
-    sem_t notificar_vista;           // El máster le indica a la vista que hay cambios por imprimir
-    sem_t impresion_completada;      // La vista le indica al máster que terminó de imprimir
-    sem_t mutex_anti_inanicion;      // Mutex para evitar inanición del máster al acceder al estado
-    sem_t mutex_estado_juego;        // Mutex para el estado del juego
-    sem_t mutex_contador_lectores;   // Mutex para la variable lectores_activos
-    unsigned int lectores_activos;   // Cantidad de jugadores leyendo el estado
-    sem_t permiso_movimiento[9];     // Indican a cada jugador que puede enviar 1 movimiento
-} semaforos;
-
-
-// Estructura para manejar ambas memorias compartidas game_state y game_sync
-typedef struct {
-    tablero *game_state;
-    semaforos *game_sync;
-    size_t state_size;
-} shared_memories;
 
 int inicializar_estructuras(shared_memories *sm, int ancho, int alto, int num_jugadores);
 void limpiar_memorias_compartidas(shared_memories *sm);
@@ -338,7 +292,52 @@ void limpiar_memorias_compartidas(shared_memories *sm) {
  */
 int main(int argc, char *argv[]) {
     // Parámetros por defecto
-    int ancho = 10, alto = 10, num_jugadores = 2;
+    unsigned int ancho = 10, alto = 10, num_jugadores = 2, delay = 200, timeout = 10, seed = time(NULL);
+    char * vista = NULL;
+    char * jugadores[9]={0};
+
+    for(int i = 0; i<argc; i++){
+        if(!strcmp(argv[i],"-w")){
+            if(isdigit(argv[i + 1])){
+                ancho = argv[i + 1];
+            }
+        }
+        if(!strcmp(argv[i],"-h")){
+            if(isdigit(argv[i + 1])){
+                alto = argv[i + 1];
+            }
+        }
+        if(!strcmp(argv[i],"-d")){
+            if(isdigit(argv[i + 1])){
+                delay = argv[i + 1];
+            }
+        }
+        if(!strcmp(argv[i],"-t")){
+            if(isdigit(argv[i + 1])){
+                timeout = argv[i + 1];
+            }
+        }
+        if(!strcmp(argv[i],"-s")){
+            if(isdigit(argv[i + 1])){
+                seed = argv[i + 1];
+            }
+        }
+        if(!strcmp(argv[i],"-v")){
+            vista = argv[i+1];
+        }
+        if(!strcmp(argv[i],"-p")){
+            num_jugadores = argc - i - 1;
+            if(num_jugadores < 1){
+                perror("Debe haber al menos un jugador");
+                exit(1);
+            }
+            for(int j=0; j<num_jugadores; j++){
+                jugadores[j] = argv[i + j + 1];
+            }
+        }
+    }
+    
+    
 
     // Creación y inicialización de memorias compartidas
     shared_memories *sm = crear_memorias_compartidas(ancho, alto, num_jugadores);
@@ -346,6 +345,48 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Error creando memorias compartidas\n");
         return 1;
     }
+
+
+    //creación pipe master --> player
+    int pipe_master_to_player[2]; 
+    if(pipe(pipe_master_to_player)==-1) //--> obtengo los fd del proceso master
+    {
+        perror("Error creando el pipe"); 
+        exit(1); 
+    }
+
+    //creación pipe player --> master
+    int pipe_player_to_master[2]; 
+     if(pipe(pipe_player_to_master)==-1) //--> obtengo los fd del proceso master
+    {
+        perror("Error creando el pipe"); 
+        exit(1); 
+    }
+
+    char *argv[] = {"./jugador", ancho, alto, NULL};
+    for(int i=0; i<10;i++)
+    {
+        if(fork()==0)
+        {
+
+            close(pipe_master_to_player[1]); // extremo que no lo necesitamos
+            close(pipe_player_to_master[0]); // extremo que no lo necesitamos
+            dup2(pipe_master_to_player[0],STDOUT_FILENO); //jugador lee del pipe al master
+            dup2(pipe_player_to_master[1], STDOUT_FILENO);//jugador escribe en el pipe al master
+
+            // Cerrar los extremos originales de los pipes (dup2 los duplica)
+            close(pipe_master_to_player[0]);
+            close(pipe_player_to_master[1]);
+
+            execv("./jugador", argv);
+            perror("execv");
+            exit(1);
+            //empieza a ejecutarse el proceso jugador
+            //execve("procesoHijo",NULL,NULL);
+        }
+    }
+
+
 
     // Distribución de jugadores en el tablero
     distribuir_jugadores(sm);
@@ -398,4 +439,5 @@ int main(int argc, char *argv[]) {
     limpiar_memorias_compartidas(sm);
 
     return 0;
+    
 }
