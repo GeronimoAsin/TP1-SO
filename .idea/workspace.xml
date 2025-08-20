@@ -21,7 +21,6 @@
     <list default="true" id="040f3793-f5c7-466f-bdc0-e15aa0fc17d5" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/master.c" beforeDir="false" afterPath="$PROJECT_DIR$/master.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prueba_master" beforeDir="false" afterPath="$PROJECT_DIR$/prueba_master" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -70,7 +69,7 @@
       <option name="presentableId" value="Default" />
       <updated>1755298033562</updated>
       <workItem from="1755298034579" duration="762000" />
-      <workItem from="1755632424676" duration="11281000" />
+      <workItem from="1755632424676" duration="16974000" />
     </task>
     <servers />
   </component>

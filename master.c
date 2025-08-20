@@ -74,10 +74,11 @@ shared_memories* crear_memorias_compartidas(int ancho, int alto, int num_jugador
         return NULL;
     }
 
-    // Calcula tamaño total: estructura + tablero dinámico
+    // Calcula tamaño total de la memoria: estructura + tablero dinámico
     sm->state_size = sizeof(tablero) + (ancho * alto * sizeof(int));
 
     // Establece el tamaño de la memoria compartida
+    //con ftruncate asignamos el tamaño de la memoria compartida
     if (ftruncate(shm_state_fd, sm->state_size) == -1) {
         perror("ftruncate game_state");
         close(shm_state_fd);
@@ -87,6 +88,7 @@ shared_memories* crear_memorias_compartidas(int ancho, int alto, int num_jugador
     }
 
     // Mapea la memoria compartida
+   //mapeo de game_state a espacio en memoria determinado por el kernel
     sm->game_state = (tablero*)mmap(NULL, sm->state_size,
                                     PROT_READ | PROT_WRITE,
                                     MAP_SHARED, shm_state_fd, 0);
@@ -126,6 +128,7 @@ shared_memories* crear_memorias_compartidas(int ancho, int alto, int num_jugador
     }
 
     // Mapear la memoria de sincronización
+    //mapeo de game_sync a espacio en memoria determinado por el kernel
     sm->game_sync = (semaforos*)mmap(NULL, sizeof(semaforos),
                                      PROT_READ | PROT_WRITE,
                                      MAP_SHARED, shm_sync_fd, 0);
