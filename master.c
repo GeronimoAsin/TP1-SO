@@ -19,7 +19,7 @@ shared_memories* crear_memorias_compartidas(int ancho, int alto, int num_jugador
         return NULL;
     }
 
-    // Eliminar restos de ejecuciones previas (ignorar errores si no existen)
+    // Eliminar restos de ejecuciones previas 
     shm_unlink("/game_state");
     shm_unlink("/game_sync");
 
@@ -307,36 +307,36 @@ int main(int argc, char *argv[]) {
         if(!strcmp(argv[i],"-w") && i + 1 < argc){
             if(isdigit((unsigned char)argv[i + 1][0])){
                 ancho = atoi(argv[i + 1]);
-                i++; // Saltar el valor
+                i++; // Saltar el valor del flag ancho
             }
         }
         else if(!strcmp(argv[i],"-h") && i + 1 < argc){
             if(isdigit((unsigned char)argv[i + 1][0])){
                 alto = atoi(argv[i + 1]);
-                i++; // Saltar el valor
+                i++; // Saltar el valor del flag alto
             }
         }
         else if(!strcmp(argv[i],"-d") && i + 1 < argc){
             if(isdigit((unsigned char)argv[i + 1][0])){
                 delay = atoi(argv[i + 1]);
-                i++; // Saltar el valor
+                i++; // Saltar el valor del flag delay
             }
         }
         else if(!strcmp(argv[i],"-t") && i + 1 < argc){
             if(isdigit((unsigned char)argv[i + 1][0])){
                 timeout = atoi(argv[i + 1]);
-                i++; // Saltar el valor
+                i++; // Saltar el valor del flag timeout
             }
         }
         else if(!strcmp(argv[i],"-s") && i + 1 < argc){
             if(isdigit((unsigned char)argv[i + 1][0])){
                 seed = atoi(argv[i + 1]);
-                i++; // Saltar el valor
+                i++; // Saltar el valor del flag seed
             }
         }
         else if(!strcmp(argv[i],"-v") && i + 1 < argc){
             vista = argv[i + 1];
-            i++; // Saltar el valor
+            i++; // Saltar el valor del flag vista
         }
         else if(!strcmp(argv[i],"-p")){
             num_jugadores = argc - i - 1;
