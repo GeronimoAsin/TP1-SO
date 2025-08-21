@@ -1,5 +1,7 @@
-
 #include "estructuras.h"
+#include <sys/wait.h>
+#include <signal.h>
+#include <time.h>
 
 
 int inicializar_estructuras(shared_memories *sm, int ancho, int alto, int num_jugadores);
@@ -346,50 +348,172 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-
-    //creación pipe master --> player
-    int pipe_master_to_player[2]; 
-    if(pipe(pipe_master_to_player)==-1) //--> obtengo los fd del proceso master
-    {
-        perror("Error creando el pipe"); 
-        exit(1); 
-    }
-
-    //creación pipe player --> master
-    int pipe_player_to_master[2]; 
-     if(pipe(pipe_player_to_master)==-1) //--> obtengo los fd del proceso master
-    {
-        perror("Error creando el pipe"); 
-        exit(1); 
-    }
-
-    char *argv[] = {"./jugador", ancho, alto, NULL};
-    for(int i=0; i<10;i++)
-    {
-        if(fork()==0)
-        {
-
-            close(pipe_master_to_player[1]); // extremo que no lo necesitamos
-            close(pipe_player_to_master[0]); // extremo que no lo necesitamos
-            dup2(pipe_master_to_player[0],STDOUT_FILENO); //jugador lee del pipe al master
-            dup2(pipe_player_to_master[1], STDOUT_FILENO);//jugador escribe en el pipe al master
-
-            // Cerrar los extremos originales de los pipes (dup2 los duplica)
-            close(pipe_master_to_player[0]);
-            close(pipe_player_to_master[1]);
-
-            execv("./jugador", argv);
-            perror("execv");
+    // ==========================
+    // Lanzar proceso de la vista
+    // ==========================
+    pid_t pid_vista = -1;
+    if (vista && vista[0] != '\0') {
+        pid_t vp = fork();
+        if (vp == -1) {
+            perror("fork vista");
+            limpiar_memorias_compartidas(sm);
+            return 1;
+        }
+        if (vp == 0) {
+            // ejecutar binario de vista con parámetros ancho y alto
+            char wbuf[16], hbuf[16];
+            snprintf(wbuf, sizeof wbuf, "%u", ancho);
+            snprintf(hbuf, sizeof hbuf, "%u", alto);
+            char *argv_vista[] = { vista, wbuf, hbuf, NULL };
+            execv(vista, argv_vista);
+            perror("execv vista");
             exit(1);
-            //empieza a ejecutarse el proceso jugador
-            //execve("procesoHijo",NULL,NULL);
+        }
+        pid_vista = vp;
+    }
+
+     // ==========================
+    // Lanzar procesos de los jugadores
+    // ==========================
+
+    //  pipes para cada jugador (comunicación bidireccional)
+    // Usamos arreglos de tamaño fijo según MAX_PLAYERS (máximo 9)
+    // en la practica habían dicho de evitar malloc si no es necesario
+    int pipes_master_to_player[MAX_PLAYERS][2];
+    int pipes_player_to_master[MAX_PLAYERS][2];
+
+    // Inicializar pipes para cada jugador efectivo
+    for (int i = 0; i < num_jugadores; i++) {
+        // Crear pipe master -> player
+        if (pipe(pipes_master_to_player[i]) == -1) {
+            perror("pipe master->player");
+            // Cerrar cualquier pipe previamente creado
+            for (int j = 0; j < i; j++) {
+                close(pipes_master_to_player[j][0]);
+                close(pipes_master_to_player[j][1]);
+                close(pipes_player_to_master[j][0]);
+                close(pipes_player_to_master[j][1]);
+            }
+            limpiar_memorias_compartidas(sm);
+            return 1;
+        }
+
+        // Creación pipe player -> master
+        if (pipe(pipes_player_to_master[i]) == -1) {
+            perror("pipe player->master");
+            // Cierro cualquier pipe previamente creado (incluyendo el recién creado master->player)
+            for (int j = 0; j <= i; j++) {
+                close(pipes_master_to_player[j][0]);
+                close(pipes_master_to_player[j][1]);
+            }
+            for (int j = 0; j < i; j++) {
+                close(pipes_player_to_master[j][0]);
+                close(pipes_player_to_master[j][1]);
+            }
+            limpiar_memorias_compartidas(sm);
+            return 1;
         }
     }
 
+    // Crear procesos jugadores (arreglo fijo)
+    pid_t pids_jugadores[MAX_PLAYERS] = {0};
+
+    for (int i = 0; i < num_jugadores; i++) {
+        pid_t pid = fork();
+
+        if (pid == -1) {
+            perror("fork");
+            // Limpiar recursos y terminar
+            for (int j = 0; j < i; j++) {
+                kill(pids_jugadores[j], SIGTERM);
+            }
+            for (int j = 0; j <= i; j++) {
+                close(pipes_master_to_player[j][0]);
+                close(pipes_master_to_player[j][1]);
+                close(pipes_player_to_master[j][0]);
+                close(pipes_player_to_master[j][1]);
+            }
+            limpiar_memorias_compartidas(sm);
+            return 1;
+        }
+
+        if (pid == 0) {
+            // Proceso hijo (jugador)
+
+            // Cerrar extremos de pipes que no necesita
+            for (int j = 0; j < num_jugadores; j++) {
+                if (j != i) {
+                    close(pipes_master_to_player[j][0]);
+                    close(pipes_master_to_player[j][1]);
+                    close(pipes_player_to_master[j][0]);
+                    close(pipes_player_to_master[j][1]);
+                }
+            }
+
+            
+            close(pipes_master_to_player[i][1]); // Cerrar extremo de escritura del pipe master->player
+            close(pipes_player_to_master[i][0]); // Cerrar extremo de lectura del pipe player->master
 
 
-    // Distribución de jugadores en el tablero
+
+            // stdin del jugador <- pipe master->player (el jugador lee comandos del master)
+            if (dup2(pipes_master_to_player[i][0], STDIN_FILENO) == -1) {
+                perror("dup2 stdin");
+                exit(1);
+            }
+
+
+
+            // stdout del jugador -> pipe player->master (el jugador escribe respuestas al master)
+            if (dup2(pipes_player_to_master[i][1], STDOUT_FILENO) == -1) {
+                perror("dup2 stdout");
+                exit(1);
+            }
+
+
+
+            // Cerrar los extremos originales
+            close(pipes_master_to_player[i][0]);
+            close(pipes_player_to_master[i][1]);
+
+
+
+            // Preparar argumentos para el jugador
+            char idx_str[16];
+            snprintf(idx_str, sizeof(idx_str), "%d", i);
+            char *argv_jugador[] = {"./jugador", idx_str, NULL};
+
+            execv("./jugador", argv_jugador);
+            perror("execv jugador");
+            exit(1);
+        } else {
+
+            // Proceso padre (master)
+            pids_jugadores[i] = pid;
+
+            // Cerrar extremos de pipes que no necesita en el master
+            close(pipes_master_to_player[i][0]); // Cerrar extremo de lectura del pipe master->player
+            close(pipes_player_to_master[i][1]); // Cerrar extremo de escritura del pipe player->master
+        }
+    }
+
+    // Distribución de jugadores en el tablero (no random)
     distribuir_jugadores(sm);
+
+    // Si hay vista, notificar estado inicial y esperar impresión
+    if (pid_vista > 0) {
+        sem_post(&sm->game_sync->notificar_vista);
+        sem_wait(&sm->game_sync->impresion_completada);
+    }
+
+
+
+    /*
+
+
+        ==================== TESTS VIEJOS ==================== 
+
+
 
     // TEST - manejo del juego
     tablero *state = sm->game_state;
@@ -408,6 +532,8 @@ int main(int argc, char *argv[]) {
         }
         printf("\n");
     }
+
+
 
     // TEST- Modificar una celda del tablero
     int test_x = 1, test_y = 1;
@@ -434,6 +560,41 @@ int main(int argc, char *argv[]) {
         printf("\n");
     }
     printf("\n--- Fin del test  ---\n\n");
+
+
+    */
+
+
+
+    //=================== EXIT MASTER ==================== 
+    
+
+    // Marcar fin del juego y notificar a la vista (si existe)
+    if (pid_vista > 0) {
+        sm->game_state->juego_terminado = true;
+        sem_post(&sm->game_sync->notificar_vista);
+        sem_wait(&sm->game_sync->impresion_completada);
+    }
+
+    // Esperar a que terminen los procesos jugadores
+    for (int i = 0; i < num_jugadores; i++) {
+        int status;
+        waitpid(pids_jugadores[i], &status, 0);
+        printf("Jugador %d terminó con status %d\n", i, WEXITSTATUS(status));
+    }
+
+    // Esperar a que termine la vista
+    if (pid_vista > 0) {
+        int vstatus;
+        waitpid(pid_vista, &vstatus, 0);
+        printf("Vista terminó con status %d\n", WEXITSTATUS(vstatus));
+    }
+
+    // Cerrar extremos de pipes que aún están abiertos en el proceso padre
+    for (int i = 0; i < num_jugadores; i++) {
+        close(pipes_master_to_player[i][1]); // Extremo de escritura master->player
+        close(pipes_player_to_master[i][0]); // Extremo de lectura player->master
+    }
 
     // limpiamos recursos
     limpiar_memorias_compartidas(sm);
