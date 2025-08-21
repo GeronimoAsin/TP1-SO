@@ -2,6 +2,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <time.h>
+#include <errno.h>
 
 
 int inicializar_estructuras(shared_memories *sm, int ancho, int alto, int num_jugadores);
@@ -17,6 +18,10 @@ shared_memories* crear_memorias_compartidas(int ancho, int alto, int num_jugador
         perror("malloc shared_memories");
         return NULL;
     }
+
+    // Eliminar restos de ejecuciones previas (ignorar errores si no existen)
+    shm_unlink("/game_state");
+    shm_unlink("/game_sync");
 
     // ===============================
     //  MEMORIA COMPARTIDA GAME_STATE
@@ -298,44 +303,55 @@ int main(int argc, char *argv[]) {
     char * vista = NULL;
     char * jugadores[9]={0};
 
-    for(int i = 0; i<argc; i++){
-        if(!strcmp(argv[i],"-w")){
-            if(isdigit(argv[i + 1])){
-                ancho = argv[i + 1];
+    for(int i = 1; i < argc; i++){
+        if(!strcmp(argv[i],"-w") && i + 1 < argc){
+            if(isdigit((unsigned char)argv[i + 1][0])){
+                ancho = atoi(argv[i + 1]);
+                i++; // Saltar el valor
             }
         }
-        if(!strcmp(argv[i],"-h")){
-            if(isdigit(argv[i + 1])){
-                alto = argv[i + 1];
+        else if(!strcmp(argv[i],"-h") && i + 1 < argc){
+            if(isdigit((unsigned char)argv[i + 1][0])){
+                alto = atoi(argv[i + 1]);
+                i++; // Saltar el valor
             }
         }
-        if(!strcmp(argv[i],"-d")){
-            if(isdigit(argv[i + 1])){
-                delay = argv[i + 1];
+        else if(!strcmp(argv[i],"-d") && i + 1 < argc){
+            if(isdigit((unsigned char)argv[i + 1][0])){
+                delay = atoi(argv[i + 1]);
+                i++; // Saltar el valor
             }
         }
-        if(!strcmp(argv[i],"-t")){
-            if(isdigit(argv[i + 1])){
-                timeout = argv[i + 1];
+        else if(!strcmp(argv[i],"-t") && i + 1 < argc){
+            if(isdigit((unsigned char)argv[i + 1][0])){
+                timeout = atoi(argv[i + 1]);
+                i++; // Saltar el valor
             }
         }
-        if(!strcmp(argv[i],"-s")){
-            if(isdigit(argv[i + 1])){
-                seed = argv[i + 1];
+        else if(!strcmp(argv[i],"-s") && i + 1 < argc){
+            if(isdigit((unsigned char)argv[i + 1][0])){
+                seed = atoi(argv[i + 1]);
+                i++; // Saltar el valor
             }
         }
-        if(!strcmp(argv[i],"-v")){
-            vista = argv[i+1];
+        else if(!strcmp(argv[i],"-v") && i + 1 < argc){
+            vista = argv[i + 1];
+            i++; // Saltar el valor
         }
-        if(!strcmp(argv[i],"-p")){
+        else if(!strcmp(argv[i],"-p")){
             num_jugadores = argc - i - 1;
             if(num_jugadores < 1){
-                perror("Debe haber al menos un jugador");
+                fprintf(stderr, "Debe haber al menos un jugador\n");
+                exit(1);
+            }
+            if(num_jugadores > MAX_PLAYERS){
+                fprintf(stderr, "Máximo %d jugadores permitidos\n", MAX_PLAYERS);
                 exit(1);
             }
             for(int j=0; j<num_jugadores; j++){
                 jugadores[j] = argv[i + j + 1];
             }
+            break; 
         }
     }
     
@@ -574,6 +590,15 @@ int main(int argc, char *argv[]) {
         sm->game_state->juego_terminado = true;
         sem_post(&sm->game_sync->notificar_vista);
         sem_wait(&sm->game_sync->impresion_completada);
+    }
+
+    // Cerrar extremos de pipes del padre y desbloquear jugadores antes de esperar
+    for (int i = 0; i < num_jugadores; i++) {
+        // Desbloquear si algún jugador quedó en sem_wait
+        sem_post(&sm->game_sync->permiso_movimiento[i]);
+        // Cerrar: stdin del jugador (vista EOF para terminar leer_linea) y lectura del padre
+        close(pipes_master_to_player[i][1]); // padre deja de escribir -> EOF en jugador
+        close(pipes_player_to_master[i][0]); // padre deja de leer
     }
 
     // Esperar a que terminen los procesos jugadores
