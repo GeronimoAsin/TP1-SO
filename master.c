@@ -5,14 +5,14 @@
 #include <errno.h>
 
 
-int inicializar_estructuras(shared_memories *sm, int ancho, int alto, int num_jugadores);
+int inicializar_estructuras(shared_memories *sm, int ancho, int alto, int num_jugadores, int semilla);
 void limpiar_memorias_compartidas(shared_memories *sm);
 
 /*
   Función principal para crear e inicializar ambas memorias compartidas:
   game_state y game_sync
  */
-shared_memories* crear_memorias_compartidas(int ancho, int alto, int num_jugadores) {
+shared_memories* crear_memorias_compartidas(int ancho, int alto, int num_jugadores, int semilla) {
     shared_memories *sm = malloc(sizeof(shared_memories));
     if (!sm) {
         perror("malloc shared_memories");
@@ -109,7 +109,7 @@ shared_memories* crear_memorias_compartidas(int ancho, int alto, int num_jugador
     // INICIALIZACIÓN DE MEMORIAS COMPARTIDAS
     // ===============================
 
-    if (inicializar_estructuras(sm, ancho, alto, num_jugadores) != 0) {
+    if (inicializar_estructuras(sm, ancho, alto, num_jugadores, semilla) != 0) {
         limpiar_memorias_compartidas(sm);
         return NULL;
     }
@@ -124,7 +124,7 @@ shared_memories* crear_memorias_compartidas(int ancho, int alto, int num_jugador
 /**
  * Inicialización de todas las estructuras
  */
-int inicializar_estructuras(shared_memories *sm, int ancho, int alto, int num_jugadores) {
+int inicializar_estructuras(shared_memories *sm, int ancho, int alto, int num_jugadores, int semilla) {
 
     tablero *state = sm->game_state;
     semaforos *sync = sm->game_sync;
@@ -152,7 +152,7 @@ int inicializar_estructuras(shared_memories *sm, int ancho, int alto, int num_ju
     }
 
     // Inicializa el tablero con recompensas aleatorias (1-9)
-    srand(time(NULL)); // Usar semilla por defecto o la pasada por parámetro
+    srand(semilla); // Usar semilla por defecto o la pasada por parámetro
 
     for (int i = 0; i < ancho * alto; i++) {
         state->tablero[i] = (rand() % 9) + 1; // Asigno valores entre 1 y 9 aleatorios
@@ -358,7 +358,7 @@ int main(int argc, char *argv[]) {
     
 
     // Creación y inicialización de memorias compartidas
-    shared_memories *sm = crear_memorias_compartidas(ancho, alto, num_jugadores);
+    shared_memories *sm = crear_memorias_compartidas(ancho, alto, num_jugadores, seed);
     if (!sm) {
         fprintf(stderr, "Error creando memorias compartidas\n");
         return 1;
