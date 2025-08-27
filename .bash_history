@@ -25,3 +25,51 @@ gcc -o ./master.c prueba_master
 gcc  master.c -o  prueba_master
 ./prueba_master
 exit
+ls
+cd ./root
+ls
+gcc master_con_memoria_compartida.c -o prueba
+./prueba
+./prueba
+clear
+ls
+gcc master_con_memoria_compartida.c -o prueba
+./prueba
+clear
+ls
+gcc master.c -o prueba_master
+./prueba_master
+gcc master.c -o prueba_master
+./prueba_master
+gcc master.c -o prueba_master
+./prueba_master
+docker stop
+stop 
+docker stop
+docker stop TP1-SO
+stop
+ls
+gcc master.c -o prueba_master
+./prueba_master
+gcc vista.c -o prueba_vista
+./prueba_vista
+./prueba_vista 2 2
+gcc vista.c -o prueba_vista
+gcc master.c -o prueba_master
+gcc vista.c -o prueba_vista
+./prueba_vista
+./prueba_vista 5 5
+docker stop
+docker kill
+exit
+/proc/cpuinfo
+sudo /proc/cpuinfo
+/proc/$$/stack
+sudo/proc/$$/stack
+sudo /proc/$$/stack
+sudo
+man sudo
+clear
+docker stop
+stop
+exit

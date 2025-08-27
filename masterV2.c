@@ -114,10 +114,21 @@ int main(int argc, char *argv[]) {
     //Empieza el juego: Se habilita de a un jugador a enviar un movimiento. Termina cuando estan
     //todos bloqueados o se alcanza el tiempo de espera
     while (!gameState->gameOver) {
+
+      sem_wait(&semaphores->mutexMasterAccess); //Entra primero el master y toma el control
+      sem_wait(&semaphores->mutexGameState);     //bloquea el acceso a gameState de los jugadores
+      sem_post(&semaphores->mutexMasterAccess);
+
+
+      //EJECUTAR MOVIMIENTOS
+
         for (int i = 0; i < num_players; i++) {
             // Habilitar al jugador para que envíe un movimiento
             sem_post(&semaphores->playerCanMove[i]);            
         }
+
+        //Una vez que se ejecutan los movimientos, se desbloquean los lectores
+        sem_post(&semaphores->mutexGameState);
 
         // Esperar a que todos los jugadores hayan enviado su movimiento
         sem_wait(&semaphores->viewEndedPrinting);

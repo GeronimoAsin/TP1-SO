@@ -57,7 +57,37 @@ int main(int argc, char *argv[]) {
     //Lectura del GameState y escribo el movimiento que quiero hacer en el fd=1
     //Luego de haber solicitado el movimiento se bloquea hasta que el master lo habilite de nuevo
     //@TODO
-    
+
+    while(!gameState->gameOver)
+      {
+
+      //si el master se esta ejecutando, entra en la cola de espera para no cortar al master, cuando toma el control lo devuelve
+		sem_wait(&semaphores->mutexMasterAccess);
+        sem_post(&semaphores-> mutexMasterAccess);
+
+
+        //bloquea el control, para que no haya race conditions al incrementar playersReadingState
+        sem_wait(&semaphores->mutexPlayerAccess);
+        if(playersReadingState++==0)
+          {
+          	//Primer lector bloquea el mutex de GameSate
+          	sem_wait(&semaphores->mutexGameState);
+          }
+
+          //deja el control, para que los otros jugadores modifiquen playersReadingState
+          sem_post(&semaphores->mutexPlayerAccess);
+
+
+          //aca leemos el estado del juego
+
+
+          sem_wait(&semaphores->mutexPlayerAccess);
+          if(--playersReadingState==0)
+            {
+                 sem_post(&semaphores->mutexGameState);
+            }
+           	sem_post(&semaphores->mutexPlayerAccess);
+      }
     
     
 }

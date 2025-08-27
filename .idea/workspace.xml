@@ -7,7 +7,6 @@
     <option name="/Default/RiderDebugger/RiderRestoreDecompile/RestoreDecompileSetting/@EntryValue" value="false" type="bool" />
     <option name="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
-    <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexRemoved" />
   </component>
   <component name="CMakeProjectFlavorService">
     <option name="flavorId" value="CMakePlainProjectFlavor" />
@@ -20,10 +19,8 @@
   <component name="ChangeListManager">
     <list default="true" id="040f3793-f5c7-466f-bdc0-e15aa0fc17d5" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.bash_history" beforeDir="false" afterPath="$PROJECT_DIR$/.bash_history" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/master.c" beforeDir="false" afterPath="$PROJECT_DIR$/master.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prueba_master" beforeDir="false" afterPath="$PROJECT_DIR$/prueba_master" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vista.c" beforeDir="false" afterPath="$PROJECT_DIR$/vista.c" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,7 +71,13 @@
       <workItem from="1755298034579" duration="762000" />
       <workItem from="1755632424676" duration="18443000" />
       <workItem from="1755712023401" duration="19000" />
-      <workItem from="1755729122707" duration="5062000" />
+      <workItem from="1755729122707" duration="9100000" />
+      <workItem from="1756063006859" duration="237000" />
+      <workItem from="1756070113367" duration="3279000" />
+      <workItem from="1756141231073" duration="1250000" />
+      <workItem from="1756156962967" duration="682000" />
+      <workItem from="1756248868478" duration="4064000" />
+      <workItem from="1756296786866" duration="2000000" />
     </task>
     <servers />
   </component>
