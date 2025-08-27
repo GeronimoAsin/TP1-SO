@@ -110,7 +110,30 @@ int main(int argc, char *argv[]) {
 
     //Creación de los procesos de los jugadores y los correspondientes pipes player->master
     //@TODO
-    
+
+	int pipe_player_to_master[MAX_PLAYERS][2];
+
+
+    for (int i=0; i<MAX_PLAYERS; i++)
+      {
+
+      	pipe(pipe_player_to_master[i]);
+
+      	if(fork()==0)
+          {
+
+          	close(pipe_player_to_master[i][0]);
+            dup2(pipe_player_to_master[i][1], 1); //el extremo de escritura del master esta asociado al fd 1 (segun la consigna)
+
+			char *player_argv[]={"./playerV2", width,height};
+         	char *envp[] = { NULL };
+			execve("./playerV2",player_argv,envp);
+          }
+
+          close(pipe_player_to_master[i][1]);
+      }
+
+
     //Empieza el juego: Se habilita de a un jugador a enviar un movimiento. Termina cuando estan
     //todos bloqueados o se alcanza el tiempo de espera
     while (!gameState->gameOver) {
