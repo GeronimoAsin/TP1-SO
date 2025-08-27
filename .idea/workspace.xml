@@ -7,6 +7,7 @@
     <option name="/Default/RiderDebugger/RiderRestoreDecompile/RestoreDecompileSetting/@EntryValue" value="false" type="bool" />
     <option name="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexRemoved" />
   </component>
   <component name="CMakeProjectFlavorService">
     <option name="flavorId" value="CMakePlainProjectFlavor" />
@@ -18,9 +19,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="040f3793-f5c7-466f-bdc0-e15aa0fc17d5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.bash_history" beforeDir="false" afterPath="$PROJECT_DIR$/.bash_history" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/masterV2.c" beforeDir="false" afterPath="$PROJECT_DIR$/masterV2.c" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -77,7 +77,8 @@
       <workItem from="1756141231073" duration="1250000" />
       <workItem from="1756156962967" duration="682000" />
       <workItem from="1756248868478" duration="4064000" />
-      <workItem from="1756296786866" duration="2000000" />
+      <workItem from="1756296786866" duration="12872000" />
+      <workItem from="1756333066384" duration="439000" />
     </task>
     <servers />
   </component>

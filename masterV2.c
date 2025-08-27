@@ -109,20 +109,19 @@ int main(int argc, char *argv[]) {
     Semaphores * semaphores = createSharedMemorySemaphores(num_players);
 
     //Creación de los procesos de los jugadores y los correspondientes pipes player->master
-    //@TODO
 
-	int pipe_player_to_master[MAX_PLAYERS][2];
+	int pipe_player_to_master[num_players][2];
 
 
-    for (int i=0; i<MAX_PLAYERS; i++)
+    for (int i=0; i<num_players; i++)
       {
 
-      	pipe(pipe_player_to_master[i]);
+      	pipe(pipe_player_to_master[i]); //para cada jugador genero un pipe
 
       	if(fork()==0)
           {
 
-          	close(pipe_player_to_master[i][0]);
+          	close(pipe_player_to_master[i][0]); //el fd de lectura del jugador no se usa (player solo escribe)
             dup2(pipe_player_to_master[i][1], 1); //el extremo de escritura del master esta asociado al fd 1 (segun la consigna)
 
 			char *player_argv[]={"./playerV2", width,height};
@@ -130,7 +129,7 @@ int main(int argc, char *argv[]) {
 			execve("./playerV2",player_argv,envp);
           }
 
-          close(pipe_player_to_master[i][1]);
+          close(pipe_player_to_master[i][1]); //fd de escritura del master no se usa (master solo lee)
       }
 
 
