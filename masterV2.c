@@ -165,12 +165,12 @@ GameState * createSharedMemoryState(unsigned short width, unsigned short height,
     }
 
     // Configurar el tamaño de la memoria compartida
-    if (ftruncate(gameStateSmFd, sizeof(GameState)) == -1) {
+    if (ftruncate(gameStateSmFd, sizeof(GameState) + (sizeof(int *) * height * width * sizeof(int))) == -1) {
         perror("Error al configurar el tamaño de la memoria compartida");
         exit(1);
     }
 
-    GameState *gameState = mmap(NULL, sizeof(GameState), PROT_READ | PROT_WRITE, MAP_SHARED, gameStateSmFd, 0);
+    GameState *gameState = mmap(NULL, sizeof(GameState) + (sizeof(int *) * height * width * sizeof(int)), PROT_READ | PROT_WRITE, MAP_SHARED, gameStateSmFd, 0);
     if (gameState == MAP_FAILED) {
         perror("Error al mapear la memoria compartida");
         exit(1);

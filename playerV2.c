@@ -1,7 +1,3 @@
-/*PROBLEMA: como se que numero de jugador soy desde aca? Eso me está impidiendo 
-trabajar con las memorias compartidas.*/
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,55 +47,76 @@ int main(int argc, char *argv[]) {
     unsigned int height = atoi(argv[2]);
 
     //Conexión a las memorias compartidas
-    GameState *gameState = connectToSharedMemoryState();
+    GameState *gameState = connectToSharedMemoryState(width, height);
     Semaphores *semaphores = connectToSharedMemorySemaphores();
+
+    //Averiguamos a que indice del arreglo de semaforos corresponde este proceso
+    unsigned int playerIndex = -1;
+    for (int i = 0; i < MAX_PLAYERS && playerIndex == -1; i++) {
+        if (gameState->players[i].pid == getpid()) {
+            playerIndex = i;
+        }
+    }
 
     //Lectura del GameState y escribo el movimiento que quiero hacer en el fd=1
     //Luego de haber solicitado el movimiento se bloquea hasta que el master lo habilite de nuevo
     //@TODO
-
-    while(!gameState->gameOver)
-      {
-
-      //si el master se esta ejecutando, entra en la cola de espera para no cortar al master, cuando toma el control lo devuelve
-		sem_wait(&semaphores->mutexMasterAccess);
-        sem_post(&semaphores-> mutexMasterAccess);
-
-
-        //bloquea el control, para que no haya race conditions al incrementar playersReadingState
+    while(1){
+        sem_wait(&semaphores->playerCanMove[playerIndex]);
+        sem_post(&semaphores->playerCanMove[playerIndex]);
         sem_wait(&semaphores->mutexPlayerAccess);
-        if(playersReadingState++==0)
-          {
-          	//Primer lector bloquea el mutex de GameSate
-          	sem_wait(&semaphores->mutexGameState);
-          }
-
-          //deja el control, para que los otros jugadores modifiquen playersReadingState
-          sem_post(&semaphores->mutexPlayerAccess);
+        if(semaphores->playersReadingState++ == 0){
+            sem_wait(&semaphores->mutexGameState);
+        }
+        sem_post(&semaphores->mutexPlayerAccess);
 
 
-          //aca leemos el estado del juego
+        unsigned int currentX = gameState->players[playerIndex].x;
+        unsigned int currentY = gameState->players[playerIndex].y;
+        unsigned char movement = 9;
+        unsigned int max = 0;
+        for(int i=-1; i<1; i++){
+            for(int j=-1; j<1; j++){
+                if((i != 0 || j != 0) && currentX + i < gameState->height && currentY + j < gameState->width && currentX + i >= 0 && currentY + j >= 0 && gameState->rows[currentX + i][currentY + j]){
+                    if(gameState->rows[currentX + i][currentY + j] > max){
+                        max = gameState->rows[currentX + i][currentY + j];
+                        if(i == -1 && j == 0){
+                            movement = 6;
+                        } else if(i == 1 && j == 0){
+                            movement = 2;
+                        } else if(i == 0 && j == -1){
+                            movement = 0;
+                        } else if(i == 0 && j == 1){
+                            movement = 4;
+                        }else if(i == -1 && j == -1){
+                            movement = 7;
+                        } else if(i == -1 && j == 1 ){
+                            movement = 5;
+                        } else if(i == 1 && j == -1){
+                            movement = 1;
+                        } else if(i == 1 && j == 1){
+                            movement = 3;
+                        }
+                    }
+                }
+        }
+        write(1, &movement, sizeof(movement));
+        
+    }
 
 
-          sem_wait(&semaphores->mutexPlayerAccess);
-          if(--playersReadingState==0)
-            {
-                 sem_post(&semaphores->mutexGameState);
-            }
-           	sem_post(&semaphores->mutexPlayerAccess);
-      }
-    
-    
 }
 
-GameState * connectToSharedMemoryState() {
+GameState * connectToSharedMemoryState(unsigned int width, unsigned int height) {
     int gameStateSmFd = shm_open("/game_state", O_RDWR, 0666);
     if (gameStateSmFd == -1) {
         perror("Error al abrir la memoria compartida para el estado del juego");
         exit(1);
     }
 
-    GameState *gameState = mmap(NULL, sizeof(GameState), PROT_READ | PROT_WRITE, MAP_SHARED, gameStateSmFd, 0);
+    //HAce falta ftruncate?
+
+    GameState *gameState = mmap(NULL, sizeof(GameState) + (sizeof(int *) * height * width * sizeof(int)), PROT_READ , MAP_SHARED, gameStateSmFd, 0);
     if (gameState == MAP_FAILED) {
         perror("Error al mapear la memoria compartida");
         exit(1);
