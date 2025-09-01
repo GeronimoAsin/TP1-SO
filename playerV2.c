@@ -68,9 +68,13 @@ int main(int argc, char *argv[]) {
         //Valida que durante el bloqueo no se haya terminado el juego
         if (gameState->gameOver) break;
 
+        // Mecanismo Readers-Writers clasico 
+        sem_wait(&semaphores->mutexMasterAccess);  // Verifica si el master quiere escribir
+        sem_post(&semaphores->mutexMasterAccess);  // Libera el control del master inmediatamente
+        
         sem_wait(&semaphores->mutexPlayerAccess);
         if(semaphores->playersReadingState++ == 0){
-            sem_wait(&semaphores->mutexGameState);
+            sem_wait(&semaphores->mutexGameState); // el primer lector toma el mutex
         }
         sem_post(&semaphores->mutexPlayerAccess);
 
@@ -109,8 +113,17 @@ int main(int argc, char *argv[]) {
                     }
                 }
             }
-            write(1, &movement, sizeof(movement));
         }
+        
+        // LIBERO mutex del GameState
+        sem_wait(&semaphores->mutexPlayerAccess);
+        if(--semaphores->playersReadingState == 0){
+            sem_post(&semaphores->mutexGameState); // el último lector libera el mutex
+        }
+        sem_post(&semaphores->mutexPlayerAccess);
+        
+        // Envio del movimiento al master
+        write(1, &movement, sizeof(movement));
     }
     return 0;
 }

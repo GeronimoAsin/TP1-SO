@@ -187,10 +187,23 @@ int main(int argc, char *argv[]) {
     }
 
 
+
+
+
     // Empieza el juego: habilitar a cada jugador a enviar exactamente 1 movimiento por ronda
-    // Implementación mínima de semáforos de jugadores (round-robin simple)
+
     const int max_rounds = 3; // límite de rondas para esta implementación mínima
+ 
     for (int round = 0; round < max_rounds && !gameState->gameOver; round++) {
+        
+  
+        // El master toma prioridad para escribir 
+        sem_wait(&semaphores->mutexMasterAccess);  // Toma prioridad como "writer"
+        sem_wait(&semaphores->mutexGameState);     // Toma control del mutex de los lectores
+        sem_post(&semaphores->mutexMasterAccess); 
+        
+   
+        // Procesar movimientos de todos los jugadores
         for (int i = 0; i < (int)numPlayers; i++) {
             // Habilitar a un jugador para que envíe un movimiento
             sem_post(&semaphores->playerCanMove[i]);
@@ -204,10 +217,14 @@ int main(int argc, char *argv[]) {
             } else if (n < 0) {
                 perror("master: read movimiento");
             } else {
-                // Movimiento recibido (no procesamos la lógica aquí, solo demostración de semáforos)
+                // Movimiento recibido
                 // printf("Recibido movimiento de jugador %d: %u\n", i, (unsigned)move);
             }
         }
+        
+        // Liberar el mutex para que los jugadores puedan leer
+        sem_post(&semaphores->mutexGameState);
+        
     }
 
     gameState->gameOver = true;
