@@ -109,8 +109,45 @@ int main(int argc, char *argv[]) {
     GameState *gameState = createSharedMemoryState(width, height, numPlayers);
     Semaphores * semaphores = createSharedMemorySemaphores(numPlayers);
 
-    //Creación de los procesos de los jugadores y los correspondientes pipes player->master
 
+
+
+    //Creación proceso vista y canal de comunicación vista->master
+    int pipeVistaToMaster[2];
+    if (pipe(pipeVistaToMaster) == -1) {
+        perror("pipe Vista->master");
+        exit(1);
+    }
+
+    char wbuf[16], hbuf[16];
+    snprintf(wbuf, sizeof wbuf, "%u", width);
+    snprintf(hbuf, sizeof hbuf, "%u", height);
+
+    pid_t vista_pid = fork();
+    if (vista_pid == -1) {
+        perror("Error en el fork de la vista\n");
+        exit(1);
+    }
+
+    if (vista_pid == 0) {
+        // Proceso hijo (vista)
+        close(pipeVistaToMaster[0]); // Cierro el extremo de lectura
+        if (dup2(pipeVistaToMaster[1], STDOUT_FILENO) == -1) {
+            perror("dup2 stdout vista");
+            exit(1);
+        }
+        close(pipeVistaToMaster[1]); // Cierro el extremo de escritura duplicado
+        char *vista_argv[] = {"./vista", wbuf, hbuf, NULL};
+        char *envp[] = { NULL };
+        execve("./vista", vista_argv, envp);
+        perror("execve vista");
+        exit(1);
+    }
+    close(pipeVistaToMaster[1]);
+
+
+
+    //Creación de los procesos de los jugadores y canales de comunicación player->master
 	int pipePlayerToMaster[numPlayers][2];
 
 
@@ -133,10 +170,11 @@ int main(int argc, char *argv[]) {
                 perror("dup2 stdout jugador");
                 exit(1);
             }
+            close(pipePlayerToMaster[i][1]); // Cerramos descriptor original tras dup2
             char wbuf[16], hbuf[16];
             snprintf(wbuf, sizeof wbuf, "%u", width);
             snprintf(hbuf, sizeof hbuf, "%u", height);
-			char *player_argv[] = {"./playerV2", wbuf, hbuf, NULL};
+            char *player_argv[] = {"./playerV2", wbuf, hbuf, NULL};
          	char *envp[] = { NULL };
 			execve("./playerV2", player_argv, envp);
             perror("execve playerV2");
