@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     Semaphores *semaphores = connectToSharedMemorySemaphores();
 
     //Averiguamos a que indice del arreglo de semaforos corresponde este proceso
-    int playerIndex = -1;     //cambio a int, le estabamos asignando -1 a un unsigned int
+    int playerIndex = -1;
     for (int i = 0; i < MAX_PLAYERS && playerIndex == -1; i++) {
         if (gameState->players[i].pid == getpid()) {
             playerIndex = i;
