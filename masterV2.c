@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "Máximo %d jugadores permitidos\n", MAX_PLAYERS);
                 exit(1);
             }
-            for(int j=0; j<numPlayers; j++){
+            for(unsigned int j=0; j<numPlayers; j++){
                 players[j] = argv[i + j + 1];
             }
             break; 
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
 	int pipePlayerToMaster[numPlayers][2];
 
 
-    for (int i=0; i<numPlayers; i++){
+    for (unsigned int i=0; i<numPlayers; i++){
         if (pipe(pipePlayerToMaster[i]) == -1) {
             perror("pipe player->master");
             exit(1);
@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
         
    
         // Procesar movimientos de todos los jugadores
-        for (int i = 0; i < (int)numPlayers; i++) {
+        for (unsigned int i = 0; i < numPlayers; i++) {
             // Habilitar a un jugador para que envíe un movimiento
             sem_post(&semaphores->playerCanMove[i]);
 
@@ -258,8 +258,8 @@ GameState * createSharedMemoryState(unsigned short width, unsigned short height,
 
 
     //Crear los jugadores
-    for (int i = 0; i < numPlayers; i++) {
-        sprintf(gameState->players[i].playerName, 16, "Player_%d", i + 1);
+    for (unsigned int i = 0; i < numPlayers; i++) {
+        snprintf(gameState->players[i].playerName, sizeof(gameState->players[i].playerName), "P%d", i + 1);
         gameState->players[i].x = rand() % width;
         gameState->players[i].y = rand() % height;
         gameState->players[i].score = 0;
@@ -267,7 +267,7 @@ GameState * createSharedMemoryState(unsigned short width, unsigned short height,
 
     // Crear las filas de la cuadrícula
     gameState->rows = malloc(height * sizeof(int));
-    for (int i = 0; i < height; i++) {
+    for (unsigned int i = 0; i < height; i++) {
         gameState->rows[i] = malloc(width * sizeof(int));
         memset(gameState->rows[i], 0, width * sizeof(int));
     }
@@ -301,7 +301,7 @@ Semaphores * createSharedMemorySemaphores(unsigned int numPlayers) {
     sem_init(&semaphores->mutexGameState, 1, 1);
     sem_init(&semaphores->mutexPlayerAccess, 1, 1);
     semaphores->playersReadingState = 0;
-    for (int i = 0; i < numPlayers; i++) {
+    for (unsigned int i = 0; i < numPlayers; i++) {
         sem_init(&semaphores->playerCanMove[i], 1, 0);
     }
 
