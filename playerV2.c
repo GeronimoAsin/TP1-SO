@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <semaphore.h>
+#include <errno.h>
 
 #define MAX_PLAYERS 9
 
@@ -42,11 +43,10 @@ typedef struct{
     sem_t playerCanMove[9];
 } Semaphores;
 
+
 int main(int argc, char *argv[]) {
     unsigned int width = atoi(argv[1]);
     unsigned int height = atoi(argv[2]);
-
-    //Conexión a las memorias compartidas
     GameState *gameState = connectToSharedMemoryState(width, height);
     Semaphores *semaphores = connectToSharedMemorySemaphores();
 
@@ -61,9 +61,13 @@ int main(int argc, char *argv[]) {
     //Lectura del GameState y escribo el movimiento que quiero hacer en el fd=1
     //Luego de haber solicitado el movimiento se bloquea hasta que el master lo habilite de nuevo
     //@TODO
-    while(1){
-        sem_wait(&semaphores->playerCanMove[playerIndex]);
-        sem_post(&semaphores->playerCanMove[playerIndex]);
+    while(!gameState->gameOver){
+        // Esperar a que el máster habilite este jugador 
+        while (sem_wait(&semaphores->playerCanMove[playerIndex]) == -1 && errno == EINTR) {}
+
+        //Valida que durante el bloqueo no se haya terminado el juego
+        if (gameState->gameOver) break;
+
         sem_wait(&semaphores->mutexPlayerAccess);
         if(semaphores->playersReadingState++ == 0){
             sem_wait(&semaphores->mutexGameState);
@@ -104,12 +108,11 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
+            }
+            write(1, &movement, sizeof(movement));
         }
-        write(1, &movement, sizeof(movement));
-        
     }
-
-
+    return 0;
 }
 
 GameState * connectToSharedMemoryState(unsigned int width, unsigned int height) {

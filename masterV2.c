@@ -42,10 +42,11 @@ typedef struct{
     sem_t playerCanMove[9];
 } Semaphores;
 
-GameState * createSharedMemoryState(unsigned short width, unsigned short height, unsigned int num_players);
+GameState * createSharedMemoryState(unsigned short width, unsigned short height, unsigned int numPlayers);
+Semaphores * createSharedMemorySemaphores(unsigned int numPlayers);
 
 int main(int argc, char *argv[]) {
-    unsigned int width = 10, height = 10, delay = 200, timeout = 10, seed = time(NULL), num_players;
+    unsigned int width = 10, height = 10, delay = 200, timeout = 10, seed = time(NULL), numPlayers;
     char * view = NULL;
     char * players[MAX_PLAYERS] = {0};
 
@@ -87,16 +88,16 @@ int main(int argc, char *argv[]) {
             i++; // Saltar el valor del flag vista
         }
         else if(!strcmp(argv[i],"-p")){
-            num_players = argc - i - 1;
-            if(num_players < 1){
+            numPlayers = argc - i - 1;
+            if(numPlayers < 1){
                 fprintf(stderr, "Debe haber al menos un jugador\n");
                 exit(1);
             }
-            if(num_players > MAX_PLAYERS){
+            if(numPlayers > MAX_PLAYERS){
                 fprintf(stderr, "Máximo %d jugadores permitidos\n", MAX_PLAYERS);
                 exit(1);
             }
-            for(int j=0; j<num_players; j++){
+            for(int j=0; j<numPlayers; j++){
                 players[j] = argv[i + j + 1];
             }
             break; 
@@ -105,59 +106,77 @@ int main(int argc, char *argv[]) {
 
 
     //Creación de las memorias compartidas
-    GameState *gameState = createSharedMemoryState(width, height, num_players);
-    Semaphores * semaphores = createSharedMemorySemaphores(num_players);
+    GameState *gameState = createSharedMemoryState(width, height, numPlayers);
+    Semaphores * semaphores = createSharedMemorySemaphores(numPlayers);
 
     //Creación de los procesos de los jugadores y los correspondientes pipes player->master
 
-	int pipe_player_to_master[num_players][2];
+	int pipePlayerToMaster[numPlayers][2];
 
 
-    for (int i=0; i<num_players; i++)
-      {
-
-      	pipe(pipe_player_to_master[i]); //para cada jugador genero un pipe
-
-      	if(fork()==0)
-          {
-
-          	close(pipe_player_to_master[i][0]); //el fd de lectura del jugador no se usa (player solo escribe)
-            dup2(pipe_player_to_master[i][1], 1); //el extremo de escritura del master esta asociado al fd 1 (segun la consigna)
-
-			char *player_argv[]={"./playerV2", width,height};
-         	char *envp[] = { NULL };
-			execve("./playerV2",player_argv,envp);
-          }
-
-          close(pipe_player_to_master[i][1]); //fd de escritura del master no se usa (master solo lee)
-      }
-
-
-    //Empieza el juego: Se habilita de a un jugador a enviar un movimiento. Termina cuando estan
-    //todos bloqueados o se alcanza el tiempo de espera
-    while (!gameState->gameOver) {
-
-      sem_wait(&semaphores->mutexMasterAccess); //Entra primero el master y toma el control
-      sem_wait(&semaphores->mutexGameState);     //bloquea el acceso a gameState de los jugadores
-      sem_post(&semaphores->mutexMasterAccess);
-
-
-      //EJECUTAR MOVIMIENTOS
-
-        for (int i = 0; i < num_players; i++) {
-            // Habilitar al jugador para que envíe un movimiento
-            sem_post(&semaphores->playerCanMove[i]);            
+    for (int i=0; i<numPlayers; i++){
+        if (pipe(pipePlayerToMaster[i]) == -1) {
+            perror("pipe player->master");
+            exit(1);
         }
 
-        //Una vez que se ejecutan los movimientos, se desbloquean los lectores
-        sem_post(&semaphores->mutexGameState);
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("fork jugador");
+            exit(1);
+        }
 
-        // Esperar a que todos los jugadores hayan enviado su movimiento
-        sem_wait(&semaphores->viewEndedPrinting);
+        if(pid==0){
+            // Proceso jugador
+            close(pipePlayerToMaster[i][0]); 
+            if (dup2(pipePlayerToMaster[i][1], STDOUT_FILENO) == -1) { // jugador escribe al fd 1
+                perror("dup2 stdout jugador");
+                exit(1);
+            }
+            char wbuf[16], hbuf[16];
+            snprintf(wbuf, sizeof wbuf, "%u", width);
+            snprintf(hbuf, sizeof hbuf, "%u", height);
+			char *player_argv[] = {"./playerV2", wbuf, hbuf, NULL};
+         	char *envp[] = { NULL };
+			execve("./playerV2", player_argv, envp);
+            perror("execve playerV2");
+            exit(1);
+        }
+
+        // Proceso máster
+        gameState->players[i].pid = pid; // Registrar PID para que el jugador encuentre su índice
+        close(pipePlayerToMaster[i][1]); // fd de escritura del master no se usa (master solo lee)
     }
+
+
+    // Empieza el juego: habilitar a cada jugador a enviar exactamente 1 movimiento por ronda
+    // Implementación mínima de semáforos de jugadores (round-robin simple)
+    const int max_rounds = 3; // límite de rondas para esta implementación mínima
+    for (int round = 0; round < max_rounds && !gameState->gameOver; round++) {
+        for (int i = 0; i < (int)numPlayers; i++) {
+            // Habilitar a un jugador para que envíe un movimiento
+            sem_post(&semaphores->playerCanMove[i]);
+
+            // Leer 1 byte (unsigned char) con el movimiento del pipe correspondiente
+            unsigned char move = 255;
+            ssize_t n = read(pipePlayerToMaster[i][0], &move, sizeof(move));
+            if (n == 0) {
+                // EOF: marcar bloqueado
+                gameState->players[i].blocked = true;
+            } else if (n < 0) {
+                perror("master: read movimiento");
+            } else {
+                // Movimiento recibido (no procesamos la lógica aquí, solo demostración de semáforos)
+                // printf("Recibido movimiento de jugador %d: %u\n", i, (unsigned)move);
+            }
+        }
+    }
+
+    gameState->gameOver = true;
+    return 0;
 }
 
-GameState * createSharedMemoryState(unsigned short width, unsigned short height, unsigned int num_players) {
+GameState * createSharedMemoryState(unsigned short width, unsigned short height, unsigned int numPlayers) {
     int gameStateSmFd = shm_open("/game_state", O_CREAT | O_RDWR, 0666);
     if (gameStateSmFd == -1) {
         perror("Error al crear la memoria compartida para el estado del juego");
@@ -179,12 +198,12 @@ GameState * createSharedMemoryState(unsigned short width, unsigned short height,
     // Inicializar el estado del juego
     gameState->width = width;
     gameState->height = height;
-    gameState->playersNumber = num_players;
+    gameState->playersNumber = numPlayers;
     gameState->gameOver = false;
 
 
     //Crear los jugadores
-    for (int i = 0; i < num_players; i++) {
+    for (int i = 0; i < numPlayers; i++) {
         sprintf(gameState->players[i].playerName, 16, "Player_%d", i + 1);
         gameState->players[i].x = rand() % width;
         gameState->players[i].y = rand() % height;
@@ -201,7 +220,7 @@ GameState * createSharedMemoryState(unsigned short width, unsigned short height,
     return gameState;
 }
 
-Semaphores * createSharedMemorySemaphores(unsigned int num_players) {
+Semaphores * createSharedMemorySemaphores(unsigned int numPlayers) {
     int semaphoresSmFd = shm_open("/game_sync", O_CREAT | O_RDWR, 0666);
     if (semaphoresSmFd == -1) {
         perror("Error al crear la memoria compartida para los semáforos");
@@ -227,7 +246,7 @@ Semaphores * createSharedMemorySemaphores(unsigned int num_players) {
     sem_init(&semaphores->mutexGameState, 1, 1);
     sem_init(&semaphores->mutexPlayerAccess, 1, 1);
     semaphores->playersReadingState = 0;
-    for (int i = 0; i < num_players; i++) {
+    for (int i = 0; i < numPlayers; i++) {
         sem_init(&semaphores->playerCanMove[i], 1, 0);
     }
 
