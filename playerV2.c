@@ -63,12 +63,10 @@ int main(int argc, char *argv[]) {
     //Lectura del GameState y escribo el movimiento que quiero hacer en el fd=1
     //Luego de haber solicitado el movimiento se bloquea hasta que el master lo habilite de nuevo
     //@TODO
-    while(!gameState->gameOver){
+    bool isOver = false;
+    while(!isOver){
         // Esperar a que el máster habilite este jugador 
         while (sem_wait(&semaphores->playerCanMove[playerIndex]) == -1 && errno == EINTR) {}
-
-        //Valida que durante el bloqueo no se haya terminado el juego
-        if (gameState->gameOver) break;
 
         // Mecanismo Readers-Writers clasico 
         sem_wait(&semaphores->mutexMasterAccess);  // Verifica si el master quiere escribir
@@ -119,8 +117,14 @@ int main(int argc, char *argv[]) {
         }
         sem_post(&semaphores->mutexPlayerAccess);
         
+        //Valida que durante el bloqueo no se haya terminado el juego
+        if (gameState->gameOver){
+            isOver = true;
+        }
+
         // Envio del movimiento al master
         write(1, &movement, sizeof(movement));
+
     }
     return 0;
 }

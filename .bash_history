@@ -83,3 +83,13 @@ gcc playerV2.c -o prueba_jugador
 gcc playerV2.c -o prueba_jugador
 ./ChompChampsAMD -p ./prueba_jugador
 exit
+cd root
+gcc playerV2.c -o prueba_jugador
+./ChompChampsAMD -p ./prueba_jugador
+gcc playerV2.c -o prueba_jugador
+./ChompChampsAMD -p ./prueba_jugador
+gcc playerV2.c -o prueba_jugador
+./ChompChampsAMD -p ./prueba_jugador
+gcc playerV2.c -o prueba_jugador
+./ChompChampsAMD -p ./prueba_jugador
+exit
