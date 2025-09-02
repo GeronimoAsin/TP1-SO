@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     Semaphores *semaphores = connectToSharedMemorySemaphores();
 
     //Averiguamos a que indice del arreglo de semaforos corresponde este proceso
-    int playerIndex = -1;
+    unsigned int playerIndex = -1;
     for (int i = 0; i < MAX_PLAYERS && playerIndex == -1; i++) {
         if (gameState->players[i].pid == getpid()) {
             playerIndex = i;
@@ -83,15 +83,10 @@ int main(int argc, char *argv[]) {
         unsigned int currentY = gameState->players[playerIndex].y;
         unsigned char movement = 9;
         unsigned int max = 0;
-
-        // el "<" no incluia la posicion +1 solo permitia moverse en -1 y 0
-        for(int i=-1; i<=1; i++){
-            for(int j=-1; j<=1; j++)
-            {
-                if((i != 0 || j != 0) && currentX + i < gameState->height && currentY + j < gameState->width && (int)(currentX + i) >= 0 && (int)(currentY + j) >= 0 && gameState->rows[currentX + i][currentY + j])
-                {
-                    if(gameState->rows[currentX + i][currentY + j] > max)
-                    {
+        for(int i=-1; i<1; i++){
+            for(int j=-1; j<1; j++){
+                if((i != 0 || j != 0) && currentX + i < gameState->height && currentY + j < gameState->width && currentX + i >= 0 && currentY + j >= 0 && gameState->rows[currentX + i][currentY + j]){
+                    if(gameState->rows[currentX + i][currentY + j] > max){
                         max = gameState->rows[currentX + i][currentY + j];
                         if(i == -1 && j == 0){
                             movement = 6;
@@ -134,6 +129,8 @@ GameState * connectToSharedMemoryState(unsigned int width, unsigned int height) 
         perror("Error al abrir la memoria compartida para el estado del juego");
         exit(1);
     }
+
+    //HAce falta ftruncate?
 
     GameState *gameState = mmap(NULL, sizeof(GameState) + (sizeof(int *) * height * width * sizeof(int)), PROT_READ , MAP_SHARED, gameStateSmFd, 0);
     if (gameState == MAP_FAILED) {
