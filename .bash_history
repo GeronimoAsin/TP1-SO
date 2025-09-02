@@ -73,3 +73,13 @@ clear
 docker stop
 stop
 exit
+cd root
+ls
+gcc playerV2.c -o prueba_jugador
+gcc playerV2.c -o prueba_jugador
+./ChompChampsAMD -p ./prueba_jugador
+gcc playerV2.c -o prueba_jugador
+./ChompChampsAMD -p ./prueba_jugador
+gcc playerV2.c -o prueba_jugador
+./ChompChampsAMD -p ./prueba_jugador
+exit

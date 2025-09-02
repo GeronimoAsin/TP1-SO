@@ -43,6 +43,8 @@ typedef struct{
     sem_t playerCanMove[9];
 } Semaphores;
 
+GameState * connectToSharedMemoryState(unsigned int width, unsigned int height);
+Semaphores * connectToSharedMemorySemaphores();
 
 int main(int argc, char *argv[]) {
     unsigned int width = atoi(argv[1]);
@@ -124,7 +126,7 @@ int main(int argc, char *argv[]) {
 }
 
 GameState * connectToSharedMemoryState(unsigned int width, unsigned int height) {
-    int gameStateSmFd = shm_open("/game_state", O_RDWR, 0666);
+    int gameStateSmFd = shm_open("/game_state", O_RDONLY, 0666);
     if (gameStateSmFd == -1) {
         perror("Error al abrir la memoria compartida para el estado del juego");
         exit(1);
