@@ -46,7 +46,7 @@ GameState * createSharedMemoryState(unsigned short width, unsigned short height,
 Semaphores * createSharedMemorySemaphores(unsigned int numPlayers);
 
 int main(int argc, char *argv[]) {
-    unsigned int width = 10, height = 10, delay = 200, timeout = 10, seed = time(NULL), numPlayers;
+    unsigned int width = 10, height = 10, delay = 200, timeout = 10, seed = time(NULL), numPlayers=5;
     char * view = NULL;
     char * players[MAX_PLAYERS] = {0};
 
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
 
 
     //Creación de los procesos de los jugadores y canales de comunicación player->master
-	int pipePlayerToMaster[numPlayers][2];
+    int pipePlayerToMaster[numPlayers][2];
 
 
     for (unsigned int i=0; i<numPlayers; i++){
@@ -174,9 +174,9 @@ int main(int argc, char *argv[]) {
             char wbuf[16], hbuf[16];
             snprintf(wbuf, sizeof wbuf, "%u", width);
             snprintf(hbuf, sizeof hbuf, "%u", height);
-            char *player_argv[] = {"./playerV2", wbuf, hbuf, NULL};
-         	char *envp[] = { NULL };
-			execve("./playerV2", player_argv, envp);
+            char *player_argv[] = {"./prueba_jugador", wbuf, hbuf, NULL};
+            char *envp[] = { NULL };
+            execve("./prueba_jugador", player_argv, envp);
             perror("execve playerV2");
             exit(1);
         }
@@ -232,6 +232,9 @@ int main(int argc, char *argv[]) {
 }
 
 GameState * createSharedMemoryState(unsigned short width, unsigned short height, unsigned int numPlayers) {
+    // Desacopla memorias compartidas anteriores con distinto tamaño
+    shm_unlink("/game_state");
+
     int gameStateSmFd = shm_open("/game_state", O_CREAT | O_RDWR, 0666);
     if (gameStateSmFd == -1) {
         perror("Error al crear la memoria compartida para el estado del juego");

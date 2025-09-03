@@ -19,11 +19,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="040f3793-f5c7-466f-bdc0-e15aa0fc17d5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/masterV2.c" beforeDir="false" afterPath="$PROJECT_DIR$/masterV2.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/playerV2.c" beforeDir="false" afterPath="$PROJECT_DIR$/playerV2.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prueba_jugador" beforeDir="false" afterPath="$PROJECT_DIR$/prueba_jugador" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/prueba_master" beforeDir="false" afterPath="$PROJECT_DIR$/prueba_master" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -91,7 +88,7 @@
       <workItem from="1756756935527" duration="8040000" />
       <workItem from="1756811737317" duration="2856000" />
       <workItem from="1756855558842" duration="25000" />
-      <workItem from="1756903788976" duration="2344000" />
+      <workItem from="1756903788976" duration="4592000" />
     </task>
     <servers />
   </component>
