@@ -93,3 +93,50 @@ gcc playerV2.c -o prueba_jugador
 gcc playerV2.c -o prueba_jugador
 ./ChompChampsAMD -p ./prueba_jugador
 exit
+root
+cd root
+gcc vistaV2.c -o prueba_vista
+gcc vistaV2.c -o prueba_vista
+exit
+cd root
+./ChompChampsAMD -p ./prueba_vista
+./ChompChamps -p ./prueba_vista
+./ChompChamps -p ./prueba_jugador
+./ChompChamps -p ./prueba_jugador
+gcc vistaV2.c -o prueba_vista
+./ChompChamps -p ./prueba_vista
+gcc vistaV2.c -o prueba_vista
+./ChompChamps -p ./prueba_vista
+gcc vistaV2.c -o prueba_vista
+./ChompChamps -p ./prueba_vista
+gcc vistaV2.c -o prueba_vista
+gcc vistaV2.c -o prueba_vista
+gcc vistaV2.c -lncurses  -o prueba_vista
+gcc -l(brew --prefix ncurses)/include -L$(brew --prefix ncurses)/lib -Incurses -o prueba_vista
+gcc  -I$(brew --prefix ncurses)/include -L$(brew --prefix ncurses)/lib -lncurses -o prueba_vista
+gcc  -lncurses vista.c -o prueba_vista
+sudo apt install ncurses
+apt install ncurses
+apt install libncurses5-dev
+gcc  -lncurses vista.c -o prueba_vista
+./ChompChamps -v ./prueba_vista -p ./prueba_player
+./ChompChamps -p ./prueba_player
+gcc ./playerV2 -o prueba_jugador
+exit
+cd root
+./ChompChamps -v ./prueba_vista -p ./prueba_player
+./ChompChamps -p ./prueba_player
+gcc ./playerV2 -o prueba_jugador
+gcc playerV2.c -o prueba_jugador
+./ChompChamps -p ./prueba_player
+
+gcc  -lncurses vistaV2.c -o prueba_vista
+gcc  -lncurses vistaV2.c -o prueba_vista
+exit
+cd root
+./ChompChamps -p ./prueba_player -v ./prueba_vista
+gcc  -lncurses vistaV2.c -o prueba_vista
+exit
+cd root
+./ChompChamps -p ./prueba_player -v ./prueba_vista
+exit
