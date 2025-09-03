@@ -47,23 +47,33 @@ GameState * connectToSharedMemoryState(unsigned int width, unsigned int height);
 Semaphores * connectToSharedMemorySemaphores();
 
 int main(int argc, char *argv[]) {
-    unsigned int width = atoi(argv[1]);
-    unsigned int height = atoi(argv[2]);
+    if (argc < 3) {
+        fprintf(stderr, "Uso: %s <width> <height>\n", argv[0]);
+        return 1;
+    }
+    unsigned int width = (unsigned int)atoi(argv[1]);
+    unsigned int height = (unsigned int)atoi(argv[2]);
     GameState *gameState = connectToSharedMemoryState(width, height);
     Semaphores *semaphores = connectToSharedMemorySemaphores();
 
     //Averiguamos a que indice del arreglo de semaforos corresponde este proceso
-    unsigned int playerIndex = -1;
+    int playerIndex = -1;
     for (int i = 0; i < MAX_PLAYERS && playerIndex == -1; i++) {
         if (gameState->players[i].pid == getpid()) {
             playerIndex = i;
         }
+    }
+    if (playerIndex == -1) {
+        fprintf(stderr, "No se encontró el índice del jugador para el PID actual\n");
+        return 1;
     }
 
     //Lectura del GameState y escribo el movimiento que quiero hacer en el fd=1
     //Luego de haber solicitado el movimiento se bloquea hasta que el master lo habilite de nuevo
     //@TODO
     bool isOver = false;
+
+
     while(!isOver){
         // Esperar a que el máster habilite este jugador 
         while (sem_wait(&semaphores->playerCanMove[playerIndex]) == -1 && errno == EINTR) {}
@@ -78,9 +88,9 @@ int main(int argc, char *argv[]) {
         }
         sem_post(&semaphores->mutexPlayerAccess);
 
-
-        unsigned int currentX = gameState->players[playerIndex].x;
-        unsigned int currentY = gameState->players[playerIndex].y;
+/*/
+        int currentX = (int)gameState->players[playerIndex].x;
+        int currentY = (int)gameState->players[playerIndex].y;
         unsigned char movement = 9;
         unsigned int max = 0;
         for(int i=-1; i<1; i++){
@@ -110,6 +120,7 @@ int main(int argc, char *argv[]) {
             }
         }
         
+        */
         // LIBERO mutex del GameState
         sem_wait(&semaphores->mutexPlayerAccess);
         if(--semaphores->playersReadingState == 0){
@@ -123,7 +134,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Envio del movimiento al master
-        write(1, &movement, sizeof(movement));
+        //write(1, &movement, sizeof(movement));
 
     }
     return 0;

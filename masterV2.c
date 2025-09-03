@@ -29,7 +29,7 @@ typedef struct {
     unsigned int playersNumber;
     Player players[9];
     bool gameOver;
-    int **rows;
+    int grid[]; // grilla almacenada en memoria compartida (width*height)
 } GameState;
 
 typedef struct{
@@ -239,12 +239,13 @@ GameState * createSharedMemoryState(unsigned short width, unsigned short height,
     }
 
     // Configurar el tamaño de la memoria compartida
-    if (ftruncate(gameStateSmFd, sizeof(GameState) + (sizeof(int *) * height * width * sizeof(int))) == -1) {
+    size_t grid_size = (size_t)width * (size_t)height * sizeof(int);
+    if (ftruncate(gameStateSmFd, sizeof(GameState) + grid_size) == -1) {
         perror("Error al configurar el tamaño de la memoria compartida");
         exit(1);
     }
 
-    GameState *gameState = mmap(NULL, sizeof(GameState) + (sizeof(int *) * height * width * sizeof(int)), PROT_READ | PROT_WRITE, MAP_SHARED, gameStateSmFd, 0);
+    GameState *gameState = mmap(NULL, sizeof(GameState) + grid_size, PROT_READ | PROT_WRITE, MAP_SHARED, gameStateSmFd, 0);
     if (gameState == MAP_FAILED) {
         perror("Error al mapear la memoria compartida");
         exit(1);
@@ -265,11 +266,12 @@ GameState * createSharedMemoryState(unsigned short width, unsigned short height,
         gameState->players[i].score = 0;
     }
 
-    // Crear las filas de la cuadrícula
-    gameState->rows = malloc(height * sizeof(int));
-    for (unsigned int i = 0; i < height; i++) {
-        gameState->rows[i] = malloc(width * sizeof(int));
-        memset(gameState->rows[i], 0, width * sizeof(int));
+    // Inicialización grilla en memoria compartida
+    int *cells = gameState->grid;
+    for (unsigned int row = 0; row < height; row++) {
+        for (unsigned int col = 0; col < width; col++) {
+            cells[row * width + col] = 0;
+        }
     }
 
     return gameState;
