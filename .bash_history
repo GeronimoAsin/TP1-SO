@@ -140,3 +140,19 @@ exit
 cd root
 ./ChompChamps -p ./prueba_player -v ./prueba_vista
 exit
+apt install libncurses5-dev
+gcc playerV2.c -o prueba_jugador
+cd root
+gcc playerV2.c -o prueba_jugador
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -v ./prueba_vista -p ./prueba_jugador
+./ChompChampsAMD -v ./prueba_vista -p ./prueba_jugador
+gcc playerV2.c -o prueba_jugador
+./ChompChampsAMD -v ./prueba_vista -p ./prueba_jugador
+./ChompChampsAMD -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+./ChompChampsAMD -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+exit

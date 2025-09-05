@@ -1,3 +1,4 @@
+//Esta faltando asignarles el lugar inicial a los jugadores
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +11,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <semaphore.h>
+#include <errno.h>
 
 #define MAX_PLAYERS 9
 
@@ -188,46 +190,70 @@ int main(int argc, char *argv[]) {
 
 
 
-
-
     // Empieza el juego: habilitar a cada jugador a enviar exactamente 1 movimiento por ronda
 
-    const int max_rounds = 3; // límite de rondas para esta implementación mínima
- 
-    for (int round = 0; round < max_rounds && !gameState->gameOver; round++) {
-        
-  
-        // El master toma prioridad para escribir 
-        sem_wait(&semaphores->mutexMasterAccess);  // Toma prioridad como "writer"
-        sem_wait(&semaphores->mutexGameState);     // Toma control del mutex de los lectores
-        sem_post(&semaphores->mutexMasterAccess); 
-        
-   
-        // Procesar movimientos de todos los jugadores
+    time_t start = time(NULL);
+    bool gameOver = false;
+    unsigned char movement[numPlayers];
+    while ((unsigned int)(time(NULL) - start) < timeout && !gameOver) {
         for (unsigned int i = 0; i < numPlayers; i++) {
-            // Habilitar a un jugador para que envíe un movimiento
             sem_post(&semaphores->playerCanMove[i]);
+            read(pipePlayerToMaster[i][0], movement[i], 1);
+        }
 
-            // Leer 1 byte (unsigned char) con el movimiento del pipe correspondiente
-            unsigned char move = 255;
-            ssize_t n = read(pipePlayerToMaster[i][0], &move, sizeof(move));
-            if (n == 0) {
-                // EOF: marcar bloqueado
-                gameState->players[i].blocked = true;
-            } else if (n < 0) {
-                perror("master: read movimiento");
+        sem_wait(&semaphores->mutexMasterAccess);
+        sem_wait(&semaphores->mutexGameState);
+        sem_post(&semaphores->mutexMasterAccess);
+
+        for (unsigned int i = 0; i < numPlayers; i++) {
+            int dx = gameState->players[i].x;
+            int dy = gameState->players[i].y;
+            if (movement[i] == 0) {
+                dy--;
+            } else if (movement[i] == 1) {
+                dx++; dy--;
+            } else if (movement[i] == 2) {
+                dx++;
+                dy--;
+            }else if(movement[i]==2){
+                dx++;
+            }else if(movement[i]==3){
+                dx++;
+                dy++;
+            }else if(movement[i]==4){
+                dy++;
+            }else if(movement[i]==5){
+                dx--;
+                dy++;
+            }else if(movement[i]==6){
+                dx--;
+            }else if(movement[i]==7){
+                dx--;
+                dy--;
+            }
+
+            if (dx >= 0 && dy >= 0 && (unsigned int)dx < width && (unsigned int)dy < height &&
+                gameState->grid[(unsigned int)dy * width + (unsigned int)dx] > 0) {
+                gameState->players[i].score += gameState->grid[(unsigned int)dy * width + (unsigned int)dx];
+                gameState->players[i].valid++;
+                gameState->grid[(unsigned int)dy * width + (unsigned int)dx] = -(int)i;
+                gameState->players[i].x = (unsigned short)dx;
+                gameState->players[i].y = (unsigned short)dy;
             } else {
-                // Movimiento recibido
-                // printf("Recibido movimiento de jugador %d: %u\n", i, (unsigned)move);
+                gameState->players[i].invalid++;
             }
         }
-        
-        // Liberar el mutex para que los jugadores puedan leer
+       
+
         sem_post(&semaphores->mutexGameState);
-        
+        sem_post(&semaphores->pendingView);
+    
+
+        start = time(NULL);
+        //Falta chequear quienes estan bloqueados, y si todos lo estan gameOver=true
     }
 
-    gameState->gameOver = true;
+
     return 0;
 }
 
