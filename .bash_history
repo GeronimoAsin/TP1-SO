@@ -156,3 +156,89 @@ gcc vistaV2.c -lncurses -o prueba_vista
 ./ChompChampsAMD -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
 ./ChompChampsAMD -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
 exit
+cd root
+gcc -lncurses vistaV2.c -o prueba_vista
+apt install libncurses5-dev
+gcc -lncurses vistaV2.c -o prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./vistaV2
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc playerV2.c  -o prueba_jugador
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc playerV2.c  -o prueba_jugador
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+exit
+cd root
+gcc playerV2.c -o prueba_jugador
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+echo $TERM
+exit
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+cd root
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+apt install -y ncurses-term
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+apt install -y libncurses5-dev libncursesw5-dev
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc test.c -o test
+gcc test.c -o -lncurses test
+gcc test.c -lncurses -o test
+./test
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+exit
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+cd root
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+exit
+gcc vistaV2.c -lncurses -o prueba_vista
+cd root
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+echo $TERM
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -p ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD -p ./prueba_jugador ./prueba_jugador ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD 100 100 -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador -v ./prueba_vista
+./ChompChampsAMD 100 100 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./ChompChampsAMD -w 100 -h 100 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./ChompChampsAMD -w 40 -h 40 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./ChompChampsAMD -w 20 -h 20 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./ChompChampsAMD -w 20 -h 20 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+gcc vistaV2.c -lncurses -o prueba_vista
+./ChompChampsAMD -w 20 -h 20 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./ChompChampsAMD -w 20 -h 20 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+exit

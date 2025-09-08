@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <semaphore.h>
 #include <errno.h>
+#include <ncurses.h>
 
 typedef struct
 {
@@ -48,21 +49,99 @@ GameState * connectToSharedMemoryState(unsigned int width, unsigned int height);
 Semaphores * connectToSharedMemorySemaphores();
 void print_state(GameState *gameState);
 
+static FILE *tty_in = NULL;
+static FILE *tty_out = NULL;
+static SCREEN *scr = NULL;
+
+int myInitscr()
+{
+    // Conservamos los FILE* como globals para cerrarlos al final.
+    // Intentamos abrir /dev/tty para garantizar acceso al terminal real.
+    tty_in  = fopen("/dev/tty", "r");
+    tty_out = fopen("/dev/tty", "w");
+    if (!tty_in || !tty_out) {
+        fprintf(stderr, "myInitscr: No se pudo abrir /dev/tty (errno=%d %s)\n", errno, strerror(errno));
+        if (tty_in) fclose(tty_in);
+        if (tty_out) fclose(tty_out);
+        tty_in = tty_out = NULL;
+        return 1;
+    }
+
+    const char *term = getenv("TERM");
+    if (!term || !*term) {
+        term = "xterm-256color";
+        fprintf(stderr, "myInitscr: TERM no estaba seteado, usando %s\n", term);
+    }//Para evitar este error, asegurarnos en el master de que el execve le pase a este proceso $TERM
+
+    scr = newterm(term, tty_out, tty_in);
+    if (!scr) {
+        fprintf(stderr, "myInitscr: newterm() fallo (TERM=%s)\n", term);
+        fclose(tty_in); tty_in = NULL;
+        fclose(tty_out); tty_out = NULL;
+        return 1;
+    }
+
+    // Establecemos la pantalla creada como la actual.
+    set_term(scr);
+
+    // Configuraciones habituales
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+
+    if (has_colors()) {
+        start_color();
+        init_pair(1, COLOR_RED,     COLOR_BLACK);
+        init_pair(2, COLOR_GREEN,   COLOR_BLACK);
+        init_pair(3, COLOR_YELLOW,  COLOR_BLACK);
+        init_pair(4, COLOR_BLUE,    COLOR_BLACK);
+        init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
+        init_pair(6, COLOR_CYAN,    COLOR_BLACK);
+        init_pair(7, COLOR_GREEN,   COLOR_WHITE);
+        init_pair(8, COLOR_BLACK,   COLOR_WHITE);
+        init_pair(9, COLOR_RED,     COLOR_WHITE);
+    }
+
+    return 0;
+}
+
+void end_curses()
+{
+    if (scr) {
+        // restaura modo normal y libera screen
+        endwin();
+        delscreen(scr);
+        scr = NULL;
+    }
+    if (tty_in) { fclose(tty_in); tty_in = NULL; }
+    if (tty_out) { fclose(tty_out); tty_out = NULL; }
+}
 
 int main(int argc, char *argv[])
 {
+    if (argc < 3) {
+        fprintf(stderr, "Uso: %s <width> <height>\n", argv[0]);
+        return 1;
+    }
+
     unsigned int width = atoi(argv[1]);
     unsigned int height = atoi(argv[2]);
+
     GameState *gameState = connectToSharedMemoryState(width, height);
     Semaphores *semaphores = connectToSharedMemorySemaphores();
+
+    if (myInitscr()) {
+        fprintf(stderr, "No se pudo inicializar ncurses vía /dev/tty. Saliendo.\n");
+        return 1;
+    }
 
     // Esperar cambios en el estado del juego
     while (1)
     {
-        // Espera notificación del máster
+    
         if (sem_wait(&semaphores->pendingView) == -1)
         {
-            perror("vista: sem_wait pendingView");
+            fprintf(stderr, "vista: sem_wait pendingView fallo errno=%d (%s)\n", errno, strerror(errno));
             break;
         }
 
@@ -70,7 +149,10 @@ int main(int argc, char *argv[])
         print_state(gameState);
 
         // Notifica al máster que el estado fue impreso
-        sem_post(&semaphores->viewEndedPrinting);
+        if (sem_post(&semaphores->viewEndedPrinting) == -1) {
+            fprintf(stderr, "vista: sem_post viewEndedPrinting fallo errno=%d (%s)\n", errno, strerror(errno));
+            // no rompemos necesariamente; seguimos hasta el próximo ciclo
+        }
 
         // Si el juego terminó, termina
         if (gameState->gameOver)
@@ -79,7 +161,15 @@ int main(int argc, char *argv[])
         }
     }
 
-    // aca falta desmapear la memoria compartida cuando termina el juego
+    end_curses();
+
+    // Desmapear la memoria compartida (buena práctica)
+    // (nota: no cerramos / shm_unlink aquí)
+    // suponer que connect... devolvió un puntero mapeado
+    // no tenemos map_size aquí; si necesitás, guardalo y munmap:
+    // munmap(gameState, map_size);
+
+    return 0;
 }
 
 // Imprime el estado del juego leyendo la grilla contigua y superponiendo jugadores
@@ -91,8 +181,11 @@ void print_state(GameState *gameState)
     unsigned short W = gameState->width;
     unsigned short H = gameState->height;
 
-    printf("\n=== ESTADO DEL JUEGO ===\n");
-    printf("Tablero: %ux%u | Jugadores: %u\n", W, H, gameState->playersNumber);
+    // Limpio pantalla para evitar superposiciones en actualizaciones
+    clear();
+
+    printw("=== ESTADO DEL JUEGO ===\n");
+    printw("Tablero: %ux%u | Jugadores: %u\n", W, H, gameState->playersNumber);
 
     for (unsigned int y = 0; y < H; y++)
     {
@@ -104,7 +197,9 @@ void print_state(GameState *gameState)
                 Player *pl = &gameState->players[p];
                 if (pl->x == x && pl->y == y)
                 {
-                    printf("P%u ", p + 1);
+                    attron(COLOR_PAIR((p % 9) + 1));
+                    printw("P%u ", p + 1);
+                    attroff(COLOR_PAIR((p % 9) + 1));
                     mostrado = 1;
                     break;
                 }
@@ -112,41 +207,57 @@ void print_state(GameState *gameState)
             if (!mostrado)
             {
                 int v = gameState->grid[y * W + x];
-                printf("%2d ", v);
+                if(v <= 0){
+                    int idx = (1 - v);
+                    if (idx < 1) idx = 1;
+                    if (idx > 9) idx = 9;
+                    attron(COLOR_PAIR(idx));
+                    printw("%2d ", 1 - v);
+                    attroff(COLOR_PAIR(idx));
+                } else {
+                    printw("%2d ", v);
+                }
             }
         }
-        printf("\n");
+        printw("\n");
     }
 
-    printf("\nJugadores:\n");
+    printw("\nJugadores:\n");
     for (unsigned int i = 0; i < gameState->playersNumber; i++)
     {
         Player *pl = &gameState->players[i];
-        printf("  %u: %s - Puntaje: %u, Pos: (%u,%u)%s\n",
+        attron(COLOR_PAIR((i % 9) + 1));
+        printw("  %u: %s - Puntaje: %u, Pos: (%u,%u)%s\n",
                i + 1, pl->playerName, pl->score, pl->x, pl->y, pl->blocked ? " [BLOQ]" : "");
+        attroff(COLOR_PAIR((i % 9) + 1));
     }
 
     if (gameState->gameOver)
     {
-        printf("\n*** JUEGO TERMINADO ***\n");
+        printw("\n*** JUEGO TERMINADO ***\n");
     }
-    printf("=======================\n\n");
+    printw("=======================\n\n");
+    refresh();
 }
 
 GameState * connectToSharedMemoryState(unsigned int width, unsigned int height) {
     int gameStateSmFd = shm_open("/game_state", O_RDONLY, 0666);
     if (gameStateSmFd == -1) {
-        perror("Error al abrir la memoria compartida para el estado del juego");
+        fprintf(stderr, "Error al abrir la memoria compartida para el estado del juego: errno=%d (%s)\n", errno, strerror(errno));
         exit(1);
     }
 
-    int map_size=sizeof(GameState) + (size_t)width * height * sizeof(int);
+    size_t map_size = sizeof(GameState) + (size_t)width * height * sizeof(int);
 
     GameState *gameState = mmap(NULL, map_size, PROT_READ , MAP_SHARED, gameStateSmFd, 0);
     if (gameState == MAP_FAILED) {
-        perror("Error al mapear la memoria compartida");
+        fprintf(stderr, "Error al mapear la memoria compartida: errno=%d (%s)\n", errno, strerror(errno));
+        close(gameStateSmFd);
         exit(1);
     }
+
+    // cerrar fd solo si no es 0/1/2
+    if (gameStateSmFd > STDERR_FILENO) close(gameStateSmFd);
 
     return gameState;
 }
@@ -154,17 +265,19 @@ GameState * connectToSharedMemoryState(unsigned int width, unsigned int height) 
 Semaphores * connectToSharedMemorySemaphores() {
     int semaphoresSmFd = shm_open("/game_sync", O_RDWR, 0666);
     if (semaphoresSmFd == -1) {
-        perror("Error al abrir la memoria compartida para los semáforos");
+        fprintf(stderr, "Error al abrir la memoria compartida para los semáforos: errno=%d (%s)\n", errno, strerror(errno));
         exit(1);
     }
 
     Semaphores *semaphores = mmap(NULL, sizeof(Semaphores), PROT_READ | PROT_WRITE, MAP_SHARED, semaphoresSmFd, 0);
-    close(semaphoresSmFd);
     if (semaphores == MAP_FAILED) {
-        perror("Error al mapear la memoria compartida");
+        fprintf(stderr, "Error al mapear la memoria compartida de semáforos: errno=%d (%s)\n", errno, strerror(errno));
+        if (semaphoresSmFd > STDERR_FILENO) close(semaphoresSmFd);
         exit(1);
     }
 
+    // cerrar fd solo si no es 0/1/2
+    if (semaphoresSmFd > STDERR_FILENO) close(semaphoresSmFd);
+
     return semaphores;
 }
-

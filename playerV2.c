@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
         sem_post(&semaphores->mutexPlayerAccess);
         
         // Valida fin de juego
-        if (gameState->gameOver || gameState->players[playerIndex].blocked){
+        if (gameState->gameOver){
             isOver = true;
         }
 
