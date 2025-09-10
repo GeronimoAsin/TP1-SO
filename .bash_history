@@ -242,3 +242,40 @@ gcc vistaV2.c -lncurses -o prueba_vista
 ./ChompChampsAMD -w 20 -h 20 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
 ./ChompChampsAMD -w 20 -h 20 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
 exit
+cd root
+gcc playerV2.c -o prueba_jugador
+gcc vistaV2.c -lncurses -o prueba_vista
+gcc masterV2.c -o prueba_master
+./prueba_master -p ./prueba_jugador -v ./prueba_vista
+gcc playerV2.c -o prueba_jugador
+gcc vistaV2.c -lncurses -o prueba_vista
+gcc masterV2.c -o prueba_master
+./prueba_master -p ./prueba_jugador -v ./prueba_vista
+gcc playerV2.c -o prueba_jugador
+gcc vistaV2.c -lncurses -o prueba_vista
+gcc masterV2.c -o prueba_master
+./prueba_master -p ./prueba_jugador -v ./prueba_vista
+gcc playerV2.c -o prueba_jugador
+gcc vistaV2.c -lncurses -o prueba_vista
+gcc masterV2.c -o prueba_master
+./prueba_master -p ./prueba_jugador -v ./prueba_vista
+./prueba_master -v ./prueba vista -p ./prueba_jugador
+./prueba_master -v ./prueba_vista -p ./prueba_jugador
+./prueba_master -v ./prueba_vista -p ./prueba_jugador
+./prueba_master -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+./prueba_master -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./ChompChamps -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./ChompChamps -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./prueba_master -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./prueba_master -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./ChompChamps -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./ChompChamps -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./prueba_master -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+exit
+exit
+cd root
+gcc masterV2.c -o prueba_master
+./prueba_master -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./prueba_master -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./ChompChamps -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
+exit
