@@ -191,6 +191,8 @@ void print_state(GameState *gameState)
     {
         for (unsigned int x = 0; x < W; x++)
         {
+            // Asegurar que no quede ningún atributo/color arrastrado de impresiones anteriores
+            attrset(A_NORMAL);
             int mostrado = 0;
             for (unsigned int p = 0; p < gameState->playersNumber; p++)
             {
@@ -207,14 +209,14 @@ void print_state(GameState *gameState)
             if (!mostrado)
             {
                 int v = gameState->grid[y * W + x];
-                if(v <= 0){
-                    int idx = (1 - v);
-                    if (idx < 1) idx = 1;
+                if(v < 0){
+                    int idx = -v;
                     if (idx > 9) idx = 9;
                     attron(COLOR_PAIR(idx));
-                    printw("%2d ", 1 - v);
+                    printw("%2d ", -v);
                     attroff(COLOR_PAIR(idx));
                 } else {
+                    // v == 0 (si apareciera) o v>0
                     printw("%2d ", v);
                 }
             }

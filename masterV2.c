@@ -395,7 +395,8 @@ int main(int argc, char *argv[])
             gameState->players[currentPlayerIndex].score +=
                 gameState->grid[(unsigned int)newY * width + (unsigned int)newX];
             gameState->players[currentPlayerIndex].valid++;
-            gameState->grid[(unsigned int)newY * width + (unsigned int)newX] = -(int)currentPlayerIndex ;
+            // marca celda visitada por el jugador con -(index+1) para ser consistente
+            gameState->grid[(unsigned int)newY * width + (unsigned int)newX] = -(int)currentPlayerIndex - 1;
             gameState->players[currentPlayerIndex].x = (unsigned short)newX;
             gameState->players[currentPlayerIndex].y = (unsigned short)newY;
 
@@ -567,7 +568,7 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
     {
         for (unsigned int col = 0; col < width; col++)
         {
-            cells[row * width + col] = (rand() % 10) + 1; // Valores entre 1 y 10
+            cells[row * width + col] = (rand() % 9) + 1; // Valores entre 1 y 9
         }
     }
 
