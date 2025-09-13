@@ -1,3 +1,4 @@
+#include "estructuras.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,38 +17,6 @@
 #include <signal.h>
 
 #define MAX_PLAYERS 9
-
-typedef struct
-{
-    char playerName[16];
-    unsigned int score;
-    unsigned int invalid;
-    unsigned int valid;
-    unsigned short x, y;
-    pid_t pid;
-    bool blocked;
-} Player;
-
-typedef struct
-{
-    unsigned short width;
-    unsigned short height;
-    unsigned int playersNumber;
-    Player players[9];
-    bool gameOver;
-    int grid[]; // grilla almacenada en memoria compartida (width*height)
-} GameState;
-
-typedef struct
-{
-    sem_t pendingView;
-    sem_t viewEndedPrinting;
-    sem_t mutexMasterAccess;
-    sem_t mutexGameState;
-    sem_t mutexPlayerAccess;
-    unsigned int playersReadingState;
-    sem_t playerCanMove[9];
-} Semaphores;
 
 GameState *createSharedMemoryState(unsigned short width, unsigned short height, unsigned int numPlayers);
 Semaphores *createSharedMemorySemaphores(unsigned int numPlayers);

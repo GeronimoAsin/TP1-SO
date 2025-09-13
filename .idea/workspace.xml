@@ -19,11 +19,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="040f3793-f5c7-466f-bdc0-e15aa0fc17d5" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/estructuras.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/masterV2.c" beforeDir="false" afterPath="$PROJECT_DIR$/master.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/playerV2.c" beforeDir="false" afterPath="$PROJECT_DIR$/player.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vistaV2" beforeDir="false" afterPath="$PROJECT_DIR$/vista" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vistaV2.c" beforeDir="false" afterPath="$PROJECT_DIR$/vista.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/master.c" beforeDir="false" afterPath="$PROJECT_DIR$/master.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/player.c" beforeDir="false" afterPath="$PROJECT_DIR$/player.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/prueba_jugador" beforeDir="false" afterPath="$PROJECT_DIR$/prueba_jugador" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/prueba_vista" beforeDir="false" afterPath="$PROJECT_DIR$/prueba_vista" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vista.c" beforeDir="false" afterPath="$PROJECT_DIR$/vista.c" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -92,7 +94,7 @@
       <workItem from="1756855558842" duration="25000" />
       <workItem from="1756903788976" duration="9913000" />
       <workItem from="1757604817121" duration="4035000" />
-      <workItem from="1757773745863" duration="353000" />
+      <workItem from="1757773745863" duration="1387000" />
     </task>
     <servers />
   </component>

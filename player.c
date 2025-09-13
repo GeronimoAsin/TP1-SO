@@ -1,3 +1,4 @@
+#include "estructuras.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,37 +15,6 @@
 
 #define MAX_PLAYERS 9
 
-typedef struct {
-    char playerName[16];
-    unsigned int score;
-    unsigned int invalid;
-    unsigned int valid;
-    unsigned short x, y;
-    pid_t pid;
-    bool blocked;
-} Player;
-
-typedef struct {
-    unsigned short width;
-    unsigned short height;
-    unsigned int playersNumber;
-    Player players[9];
-    bool gameOver;
-    int grid[];
-} GameState;
-
-typedef struct{
-    sem_t pendingView;
-    sem_t viewEndedPrinting;
-    sem_t mutexMasterAccess;
-    sem_t mutexGameState;
-    sem_t mutexPlayerAccess;
-    unsigned int playersReadingState;
-    sem_t playerCanMove[9];
-} Semaphores;
-
-GameState * connectToSharedMemoryState(unsigned int width, unsigned int height);
-Semaphores * connectToSharedMemorySemaphores();
 
 int main(int argc, char *argv[]) {
 
@@ -145,39 +115,4 @@ int main(int argc, char *argv[]) {
 
     }
     return 0;
-}
-
-GameState * connectToSharedMemoryState(unsigned int width, unsigned int height) {
-    int gameStateSmFd = shm_open("/game_state", O_RDONLY, 0666);
-    if (gameStateSmFd == -1) {
-        perror("Error al abrir la memoria compartida para el estado del juego");
-        exit(1);
-    }
-
-    int map_size=sizeof(GameState) + (size_t)width * height * sizeof(int);
-
-    GameState *gameState = mmap(NULL, map_size, PROT_READ , MAP_SHARED, gameStateSmFd, 0);
-    if (gameState == MAP_FAILED) {
-        perror("Error al mapear la memoria compartida");
-        exit(1);
-    }
-
-    return gameState;
-}
-
-Semaphores * connectToSharedMemorySemaphores() {
-    int semaphoresSmFd = shm_open("/game_sync", O_RDWR, 0666);
-    if (semaphoresSmFd == -1) {
-        perror("Error al abrir la memoria compartida para los semáforos");
-        exit(1);
-    }
-
-    Semaphores *semaphores = mmap(NULL, sizeof(Semaphores), PROT_READ | PROT_WRITE, MAP_SHARED, semaphoresSmFd, 0);
-    close(semaphoresSmFd);
-    if (semaphores == MAP_FAILED) {
-        perror("Error al mapear la memoria compartida");
-        exit(1);
-    }
-
-    return semaphores;
 }
