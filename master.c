@@ -27,13 +27,20 @@ static GameState *g_gameState = NULL;
 static Semaphores *g_semaphores = NULL;
 static unsigned int g_width = 0, g_height = 0, g_numPlayers = 0;
 
+void sleep_ms(int delay) {
+    struct timespec ts;
+    ts.tv_sec = delay / 1000;                // parte entera en segundos
+    ts.tv_nsec = (delay % 1000) * 1000000L;  // resto en nanosegundos
+    nanosleep(&ts, NULL);
+}
+
 int main(int argc, char *argv[])
 {
     unsigned int width = 10, height = 10, delay = 200, timeout = 10, seed = time(NULL), numPlayers = 0;
     char *view = NULL;
     char *players[MAX_PLAYERS] = {0};
 
-    // Validar parámetros mínimos
+    // Validación parámetros mínimos
     if (argc < 3)
     {
         fprintf(stderr, "Uso: %s [-w width] [-h height] [-d delay] [-t timeout] [-s seed] [-v view] -p player1 [player2 ...]\n", argv[0]);
@@ -47,35 +54,35 @@ int main(int argc, char *argv[])
         {
             width = atoi(argv[i + 1]);
             if (width < 10)
-                width = 10; // Aplicar mínimo
-            i++;            // Saltar el valor del flag ancho
+                width = 10; 
+            i++;            
         }
         else if (!strcmp(argv[i], "-h") && i + 1 < argc)
         {
             height = atoi(argv[i + 1]);
             if (height < 10)
-                height = 10; // Aplicar mínimo
-            i++;             // Saltar el valor del flag alto
+                height = 10; 
+            i++;             
         }
         else if (!strcmp(argv[i], "-d") && i + 1 < argc)
         {
             delay = atoi(argv[i + 1]);
-            i++; // Saltar el valor del flag delay
+            i++; 
         }
         else if (!strcmp(argv[i], "-t") && i + 1 < argc)
         {
             timeout = atoi(argv[i + 1]);
-            i++; // Saltar el valor del flag timeout
+            i++; 
         }
         else if (!strcmp(argv[i], "-s") && i + 1 < argc)
         {
             seed = atoi(argv[i + 1]);
-            i++; // Saltar el valor del flag seed
+            i++; 
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc)
         {
             view = argv[i + 1];
-            i++; // Saltar el valor del flag vista
+            i++; 
         }
         else if (!strcmp(argv[i], "-p"))
         {
@@ -104,27 +111,11 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // Verificar que los archivos de jugadores existen
-    for (unsigned int i = 0; i < numPlayers; i++)
-    {
-        if (access(players[i], X_OK) != 0)
-        {
-            fprintf(stderr, "Error: No se puede acceder al archivo del jugador '%s'\n", players[i]);
-            exit(1);
-        }
-    }
 
-    // Verificar que el archivo de vista existe (si se especifica)
-    if (view != NULL && access(view, X_OK) != 0)
-    {
-        fprintf(stderr, "Error: No se puede acceder al archivo de vista '%s'\n", view);
-        exit(1);
-    }
-
-    // Establecer la semilla para reproducibilidad
+    // Establecimiento de la semilla para números aleatorios
     srand(seed);
 
-    // Configurar manejador de señales para limpieza
+    // Configuración de manejador de señales para limpieza
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
@@ -132,7 +123,7 @@ int main(int argc, char *argv[])
     GameState *gameState = createSharedMemoryState(width, height, numPlayers);
     Semaphores *semaphores = createSharedMemorySemaphores(numPlayers);
 
-    // Configurar variables globales para cleanup en señales
+    // Configuración de variables globales para cleanup en señales
     g_gameState = gameState;
     g_semaphores = semaphores;
     g_width = width;
@@ -141,8 +132,8 @@ int main(int argc, char *argv[])
 
     // Variables para tracking de procesos hijos
     pid_t vista_pid = -1;
-    pid_t player_pids[MAX_PLAYERS];
-    for (int i = 0; i < MAX_PLAYERS; i++)
+    pid_t player_pids[numPlayers];
+    for (int i = 0; i < numPlayers; i++)
     {
         player_pids[i] = -1;
     }
@@ -158,8 +149,8 @@ int main(int argc, char *argv[])
         }
 
         char wbuf[16], hbuf[16];
-        snprintf(wbuf, sizeof wbuf, "%u", width);
-        snprintf(hbuf, sizeof hbuf, "%u", height);
+        snprintf(wbuf, sizeof(wbuf), "%u", width);
+        snprintf(hbuf, sizeof(hbuf), "%u", height);
 
         vista_pid = fork();
         if (vista_pid == -1)
@@ -179,8 +170,7 @@ int main(int argc, char *argv[])
             }
             close(pipeVistaToMaster[1]); // Cierro el extremo de escritura duplicado
             char *vista_argv[] = {view, wbuf, hbuf, NULL};
-            // Configurar variable de entorno TERM para ncurses
-            char *envp[] = {"TERM=xterm-256color", NULL};
+            char *envp[] = {getenv("TERM"), NULL};
             execve(view, vista_argv, envp);
             perror("execve vista");
             exit(1);
@@ -227,17 +217,17 @@ int main(int argc, char *argv[])
         }
 
         // Proceso máster
-        gameState->players[i].pid = pid; // Registrar PID para que el jugador encuentre su índice
-        player_pids[i] = pid;            // Guardar PID para wait posterior
-        close(pipePlayerToMaster[i][1]); // fd de escritura del master no se usa (master solo lee)
+        gameState->players[i].pid = pid; 
+        player_pids[i] = pid;            
+        close(pipePlayerToMaster[i][1]); 
     }
 
-    // Notificar estado inicial a la vista si existe
+
     if (view != NULL)
     {
         sem_post(&semaphores->pendingView);
         sem_wait(&semaphores->viewEndedPrinting);
-        usleep(delay * 1000); // delay en microsegundos
+        sleep_ms(delay);
     }
 
     // Lógica principal del juego con round-robin
@@ -247,14 +237,14 @@ int main(int argc, char *argv[])
 
     while (!gameOver)
     {
-        // Verificar timeout
+        // Verificación timeout
         if ((unsigned int)(time(NULL) - lastValidMove) >= timeout)
         {
             printf("Timeout alcanzado. Finalizando juego.\n");
             break;
         }
 
-        // Verificar si todos los jugadores están bloqueados
+        // Verificación de si todos los jugadores están bloqueados
         bool anyPlayerActive = false;
         for (unsigned int i = 0; i < numPlayers; i++)
         {
@@ -271,7 +261,7 @@ int main(int argc, char *argv[])
             break;
         }
 
-        // Buscar el siguiente jugador activo usando round-robin
+        // Búsqueda del siguiente jugador activo usando round-robin
         unsigned int playersChecked = 0;
         bool foundPlayer = false;
 
@@ -288,17 +278,10 @@ int main(int argc, char *argv[])
             }
         }
 
-        if (!foundPlayer)
-        {
-            // Esto no debería pasar dado el check anterior, pero por seguridad
-            printf("No se encontraron jugadores activos. Finalizando juego.\n");
-            break;
-        }
-
-        // Habilitar al jugador actual
+        // Se habilita al jugador actual
         sem_post(&semaphores->playerCanMove[currentPlayerIndex]);
 
-        // Leer movimiento del jugador actual - bloquear hasta que responda
+        // Lectura movimiento del jugador actual - bloqueo hasta que responda
         unsigned char movement;
         ssize_t bytesRead = read(pipePlayerToMaster[currentPlayerIndex][0], &movement, 1);
         if (bytesRead != 1)
@@ -310,7 +293,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        // Procesar el movimiento
+        // Procesamiento del movimiento
         sem_wait(&semaphores->mutexGameState);
 
         bool validMove = false;
@@ -318,7 +301,6 @@ int main(int argc, char *argv[])
         int currentY = gameState->players[currentPlayerIndex].y;
         int newX = currentX, newY = currentY;
 
-        // Mapear movimiento a desplazamiento
         switch (movement)
         {
         case 0:
@@ -353,7 +335,7 @@ int main(int argc, char *argv[])
             break;
         }
 
-        // Validar movimiento
+
         if (newX >= 0 && newY >= 0 &&
             (unsigned int)newX < width && (unsigned int)newY < height &&
             gameState->grid[(unsigned int)newY * width + (unsigned int)newX] > 0)
@@ -371,7 +353,7 @@ int main(int argc, char *argv[])
             validMove = true;
             lastValidMove = time(NULL);
 
-            // Verificar si el jugador quedó bloqueado (sin movimientos válidos)
+            // Verificación de si el jugador quedó bloqueado (sin movimientos válidos)
             bool hasValidMoves = false;
             for (int dy = -1; dy <= 1 && !hasValidMoves; dy++)
             {
@@ -399,24 +381,24 @@ int main(int argc, char *argv[])
 
         sem_post(&semaphores->mutexGameState);
 
-        // Avanzar al siguiente jugador en round-robin
-        currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
 
-        // Notificar a la vista si hay una y hubo un movimiento válido
+        currentPlayerIndex = currentPlayerIndex + 1;
+
+        // Notificación a la vista (si hay una y hubo un movimiento válido)
         if (view != NULL && validMove)
         {
             sem_post(&semaphores->pendingView);
             sem_wait(&semaphores->viewEndedPrinting);
-            usleep(delay * 1000); // delay en microsegundos
+            sleep_ms(delay);
         }
     }
 
-    // Marcar fin del juego
+    // Marcado del fin del juego
     sem_wait(&semaphores->mutexGameState);
     gameState->gameOver = true;
     sem_post(&semaphores->mutexGameState);
 
-    // Notificar vista final si existe
+    // Notificación a la vista del final (si existe)
     if (view != NULL)
     {
         sem_post(&semaphores->pendingView);
@@ -671,3 +653,11 @@ void signal_handler(int sig)
     cleanup_resources(g_width, g_height, g_numPlayers, g_gameState, g_semaphores);
     exit(sig);
 }
+
+
+
+
+
+
+
+
