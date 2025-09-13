@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
         close(pipePlayerToMaster[i][1]); 
     }
 
-
+    // Impresión del estado inicial (en caso de tener vista)
     if (view != NULL)
     {
         sem_post(&semaphores->pendingView);
@@ -239,28 +239,25 @@ int main(int argc, char *argv[])
         // Verificación timeout
         if ((unsigned int)(time(NULL) - lastValidMove) >= timeout)
         {
-            printf("Timeout alcanzado. Finalizando juego.\n");
-            break;
+            break; //Si se supera el timeout, termina el juego
         }
 
         // Verificación de si todos los jugadores están bloqueados
         bool anyPlayerActive = false;
-        for (unsigned int i = 0; i < numPlayers; i++)
+        for (unsigned int i = 0; i < numPlayers && !anyPlayerActive; i++)
         {
             if (!gameState->players[i].blocked)
             {
                 anyPlayerActive = true;
-                break;
             }
         }
 
         if (!anyPlayerActive)
         {
-            printf("Todos los jugadores están bloqueados. Finalizando juego.\n");
-            break;
+            break; //Si todos estan bloqueados, termina el juego
         }
 
-        // Habilitar a todos los jugadores activos
+        // Habilitación a todos los jugadores activos para que puedan moverse
         for (unsigned int i = 0; i < numPlayers; i++)
         {
             if (!gameState->players[i].blocked)
@@ -269,7 +266,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        // Configurar fd_set para select()
+        // Configuración de fd_set para select()
         fd_set readfds;
         FD_ZERO(&readfds);
         int maxfd = -1;
@@ -292,7 +289,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        // Usar select() para esperar movimientos de cualquier jugador
+        // Uso de select() para esperar movimientos de cualquier jugador
         struct timeval selectTimeout;
         selectTimeout.tv_sec = 1;  // 1 segundo de timeout para el select
         selectTimeout.tv_usec = 0;
@@ -306,11 +303,11 @@ int main(int argc, char *argv[])
         }
         else if (selectResult == 0)
         {
-            // Timeout del select, continuar el bucle
+            // Timeout del select, continua el bucle
             continue;
         }
 
-        // Procesar movimientos de todos los jugadores que tienen datos listos
+        // Procesamiento de movimientos de todos los jugadores que tienen datos listos
         bool anyValidMove = false;
         
         for (unsigned int i = 0; i < numPlayers; i++)
@@ -318,15 +315,7 @@ int main(int argc, char *argv[])
             if (!gameState->players[i].blocked && FD_ISSET(pipePlayerToMaster[i][0], &readfds))
             {
                 unsigned char movement;
-                ssize_t bytesRead = read(pipePlayerToMaster[i][0], &movement, 1);
-                
-                if (bytesRead != 1)
-                {
-                    // Jugador desconectado o error
-                    printf("Jugador %d desconectado. Marcándolo como bloqueado.\n", i + 1);
-                    gameState->players[i].blocked = true;
-                    continue;
-                }
+                read(pipePlayerToMaster[i][0], &movement, 1);
 
                 // Procesamiento del movimiento
                 sem_wait(&semaphores->mutexGameState);
@@ -378,7 +367,7 @@ int main(int argc, char *argv[])
                     gameState->players[i].score +=
                         gameState->grid[(unsigned int)newY * width + (unsigned int)newX];
                     gameState->players[i].valid++;
-                    // marca celda visitada por el jugador con -(index+1) para ser consistente
+                    // marca celda visitada por el jugador con -(index+1) 
                     gameState->grid[(unsigned int)newY * width + (unsigned int)newX] = -(int)i - 1;
                     gameState->players[i].x = (unsigned short)newX;
                     gameState->players[i].y = (unsigned short)newY;
@@ -416,7 +405,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        // Actualizar tiempo del último movimiento válido
+        // Actualización del tiempo desde el último movimiento válido
         if (anyValidMove)
         {
             lastValidMove = time(NULL);
@@ -443,16 +432,15 @@ int main(int argc, char *argv[])
         sem_wait(&semaphores->viewEndedPrinting);
     }
 
-    // Habilitar a todos los jugadores para que puedan terminar
+    // Habilitación a todos los jugadores para que puedan terminar
     for (unsigned int i = 0; i < numPlayers; i++)
     {
         sem_post(&semaphores->playerCanMove[i]);
     }
 
-    // Esperar a que terminen todos los procesos hijos
+    // Una vez que terminan los procesos hijos, se imprimen los resultados finales
     printf("\n=== RESULTADOS FINALES ===\n");
 
-    // Esperar jugadores
     for (unsigned int i = 0; i < numPlayers; i++)
     {
         if (player_pids[i] != -1)
@@ -483,7 +471,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    // Esperar vista
     if (vista_pid != -1)
     {
         int status;
@@ -508,16 +495,14 @@ int main(int argc, char *argv[])
     printf("========================\n");
 
     // Limpieza de memoria compartida y semáforos
-    printf("Limpiando recursos...\n");
     cleanup_resources(width, height, numPlayers, gameState, semaphores);
-    printf("Recursos liberados correctamente.\n");
 
     return 0;
 }
 
 GameState *createSharedMemoryState(unsigned short width, unsigned short height, unsigned int numPlayers)
 {
-    // Desacopla memorias compartidas anteriores con distinto tamaño
+    // Desacopla memorias compartidas anteriores 
     shm_unlink("/game_state");
 
     int gameStateSmFd = shm_open("/game_state", O_CREAT | O_RDWR, 0666);
@@ -527,7 +512,7 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
         exit(1);
     }
 
-    // Configurar el tamaño de la memoria compartida
+    // Configuración del tamaño de la memoria compartida
     size_t grid_size = (size_t)width * (size_t)height * sizeof(int);
     if (ftruncate(gameStateSmFd, sizeof(GameState) + grid_size) == -1)
     {
@@ -543,10 +528,9 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
         exit(1);
     }
 
-    // Cerrar el file descriptor ya que no lo necesitamos más
     close(gameStateSmFd);
 
-    // Inicializar el estado del juego
+    // Inicialización del estado del juego
     gameState->width = width;
     gameState->height = height;
     gameState->playersNumber = numPlayers;
@@ -563,7 +547,7 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
     }
 
     // Distribución determinística de jugadores
-    // Distribuir en las esquinas y bordes para dar margen de movimiento similar
+    // Distribución en las esquinas y bordes para dar margen de movimiento similar
     unsigned int positions[][2] = {
         {0, 0},                  // esquina superior izquierda
         {width - 1, 0},          // esquina superior derecha
@@ -579,30 +563,16 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
     for (unsigned int i = 0; i < numPlayers; i++)
     {
         snprintf(gameState->players[i].playerName, sizeof(gameState->players[i].playerName), "P%d", i + 1);
-
-        // Asignar posición determinística
-        if (i < 9)
-        {
-            gameState->players[i].x = positions[i][0];
-            gameState->players[i].y = positions[i][1];
-        }
-        else
-        {
-            // Para más de 9 jugadores, usar distribución pseudo-aleatoria determinística
-            gameState->players[i].x = (i * 7) % width;
-            gameState->players[i].y = (i * 11) % height;
-        }
-
+        gameState->players[i].x = positions[i][0];
+        gameState->players[i].y = positions[i][1];
         gameState->players[i].score = 0;
         gameState->players[i].invalid = 0;
         gameState->players[i].valid = 0;
-        gameState->players[i].pid = 0; // Se asignará luego
+        gameState->players[i].pid = 0; 
         gameState->players[i].blocked = false;
-
-        // Marcar posición inicial en la grilla
         unsigned int pos = gameState->players[i].y * width + gameState->players[i].x;
-        gameState->players[i].score += cells[pos]; // Punto inicial
-        cells[pos] = -(int)i - 1;                  // Marcar como ocupada por jugador i
+        gameState->players[i].score += cells[pos]; 
+        cells[pos] = -(int)i - 1;                  
     }
 
     return gameState;
@@ -610,6 +580,10 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
 
 Semaphores *createSharedMemorySemaphores(unsigned int numPlayers)
 {
+    // Desacopla memorias compartidas anteriores 
+    shm_unlink("/game_sync");
+
+
     int semaphoresSmFd = shm_open("/game_sync", O_CREAT | O_RDWR, 0666);
     if (semaphoresSmFd == -1)
     {
@@ -617,7 +591,7 @@ Semaphores *createSharedMemorySemaphores(unsigned int numPlayers)
         exit(1);
     }
 
-    // Configurar el tamaño de la memoria compartida
+    // Configuración del tamaño de la memoria compartida
     if (ftruncate(semaphoresSmFd, sizeof(Semaphores)) == -1)
     {
         perror("Error al configurar el tamaño de la memoria compartida");
@@ -632,10 +606,9 @@ Semaphores *createSharedMemorySemaphores(unsigned int numPlayers)
         exit(1);
     }
 
-    // Cerrar el file descriptor ya que no lo necesitamos más
     close(semaphoresSmFd);
 
-    // Inicializar los semáforos
+    // Inicialización de los semáforos
     sem_init(&semaphores->pendingView, 1, 0);
     sem_init(&semaphores->viewEndedPrinting, 1, 0);
     sem_init(&semaphores->mutexMasterAccess, 1, 1);
@@ -654,7 +627,6 @@ void cleanup_resources(unsigned int width, unsigned int height, unsigned int num
 {
     if (semaphores != NULL)
     {
-        // Destruir semáforos
         sem_destroy(&semaphores->pendingView);
         sem_destroy(&semaphores->viewEndedPrinting);
         sem_destroy(&semaphores->mutexMasterAccess);
@@ -665,7 +637,6 @@ void cleanup_resources(unsigned int width, unsigned int height, unsigned int num
             sem_destroy(&semaphores->playerCanMove[i]);
         }
 
-        // Desmapear memoria de semáforos
         if (munmap(semaphores, sizeof(Semaphores)) == -1)
         {
             perror("Error al desmapear memoria compartida de semáforos");
@@ -674,7 +645,6 @@ void cleanup_resources(unsigned int width, unsigned int height, unsigned int num
 
     if (gameState != NULL)
     {
-        // Desmapear memoria del estado del juego
         size_t grid_size = (size_t)width * (size_t)height * sizeof(int);
         if (munmap(gameState, sizeof(GameState) + grid_size) == -1)
         {
@@ -682,14 +652,12 @@ void cleanup_resources(unsigned int width, unsigned int height, unsigned int num
         }
     }
 
-    // Eliminar objetos de memoria compartida
     shm_unlink("/game_state");
     shm_unlink("/game_sync");
 }
 
 void signal_handler(int sig)
 {
-    printf("\nRecibida señal %d. Limpiando recursos...\n", sig);
     cleanup_resources(g_width, g_height, g_numPlayers, g_gameState, g_semaphores);
     exit(sig);
 }
