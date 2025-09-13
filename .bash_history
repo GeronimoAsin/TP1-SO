@@ -279,3 +279,31 @@ gcc masterV2.c -o prueba_master
 ./prueba_master -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador ./prueba_jugador
 ./ChompChamps -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
 exit
+cd root
+ls
+gcc master.c -Wall -o prueba_master
+gcc master.c -Wall -o prueba_master
+gcc player.c -Wall -o prueba_jugador
+apt install libncurses5dev
+sudo apt install libncurses5-dev libncursesw5-dev
+apt install libncurses5-dev libncursesw5-dev
+gcc vista.c -lncurses -Wall -o prueba_vista
+./prueba_master -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+./prueba_master -d 2000 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+./prueba_master -d 2000 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+gcc master.c -Wall -o prueba_master
+./prueba_master -d 2000 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+./prueba_master -d 1000 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+gcc master.c -Wall -o prueba_master
+gcc master.c -Wall -o prueba_master
+gcc master.c -Wall -o prueba_master
+gcc master.c -Wall -o prueba_master
+exit
+cd root
+gcc master.c -Wall -o prueba_master
+gcc master.c -Wall -o prueba_master
+./prueba_master -d 1000 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador
+./prueba_master -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./prueba_master -d 500 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
+./prueba_master -d 500 -v ./prueba_vista -p ./prueba_jugador ./prueba_jugador ./prueba_jugador
+exit

@@ -230,10 +230,9 @@ int main(int argc, char *argv[])
         sleep_ms(delay);
     }
 
-    // Lógica principal del juego con round-robin
+    // Lógica principal del juego con select()
     time_t lastValidMove = time(NULL);
     bool gameOver = false;
-    unsigned int currentPlayerIndex = 0; // Para round-robin
 
     while (!gameOver)
     {
@@ -261,131 +260,170 @@ int main(int argc, char *argv[])
             break;
         }
 
-        // Búsqueda del siguiente jugador activo usando round-robin
-        unsigned int playersChecked = 0;
-        bool foundPlayer = false;
-
-        while (playersChecked < numPlayers && !foundPlayer)
+        // Habilitar a todos los jugadores activos
+        for (unsigned int i = 0; i < numPlayers; i++)
         {
-            if (!gameState->players[currentPlayerIndex].blocked)
+            if (!gameState->players[i].blocked)
             {
-                foundPlayer = true;
-            }
-            else
-            {
-                currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
-                playersChecked++;
+                sem_post(&semaphores->playerCanMove[i]);
             }
         }
 
-        // Se habilita al jugador actual
-        sem_post(&semaphores->playerCanMove[currentPlayerIndex]);
-
-        // Lectura movimiento del jugador actual - bloqueo hasta que responda
-        unsigned char movement;
-        ssize_t bytesRead = read(pipePlayerToMaster[currentPlayerIndex][0], &movement, 1);
-        if (bytesRead != 1)
+        // Configurar fd_set para select()
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        int maxfd = -1;
+        
+        for (unsigned int i = 0; i < numPlayers; i++)
         {
-            // Jugador desconectado o error
-            printf("Jugador %d desconectado. Marcándolo como bloqueado.\n", currentPlayerIndex + 1);
-            gameState->players[currentPlayerIndex].blocked = true;
-            currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
+            if (!gameState->players[i].blocked)
+            {
+                FD_SET(pipePlayerToMaster[i][0], &readfds);
+                if (pipePlayerToMaster[i][0] > maxfd)
+                {
+                    maxfd = pipePlayerToMaster[i][0];
+                }
+            }
+        }
+
+        if (maxfd == -1)
+        {
+            // No hay jugadores activos
             continue;
         }
 
-        // Procesamiento del movimiento
-        sem_wait(&semaphores->mutexGameState);
+        // Usar select() para esperar movimientos de cualquier jugador
+        struct timeval selectTimeout;
+        selectTimeout.tv_sec = 1;  // 1 segundo de timeout para el select
+        selectTimeout.tv_usec = 0;
 
-        bool validMove = false;
-        int currentX = gameState->players[currentPlayerIndex].x;
-        int currentY = gameState->players[currentPlayerIndex].y;
-        int newX = currentX, newY = currentY;
-
-        switch (movement)
+        int selectResult = select(maxfd + 1, &readfds, NULL, NULL, &selectTimeout);
+        
+        if (selectResult == -1)
         {
-        case 0:
-            newY--;
-            break; // arriba
-        case 1:
-            newX++;
-            newY--;
-            break; // arriba-derecha
-        case 2:
-            newX++;
-            break; // derecha
-        case 3:
-            newX++;
-            newY++;
-            break; // abajo-derecha
-        case 4:
-            newY++;
-            break; // abajo
-        case 5:
-            newX--;
-            newY++;
-            break; // abajo-izquierda
-        case 6:
-            newX--;
-            break; // izquierda
-        case 7:
-            newX--;
-            newY--;
-            break; // arriba-izquierda
-        default:   /* movimiento inválido */
+            perror("select failed");
             break;
         }
-
-
-        if (newX >= 0 && newY >= 0 &&
-            (unsigned int)newX < width && (unsigned int)newY < height &&
-            gameState->grid[(unsigned int)newY * width + (unsigned int)newX] > 0)
+        else if (selectResult == 0)
         {
+            // Timeout del select, continuar el bucle
+            continue;
+        }
 
-            // Movimiento válido
-            gameState->players[currentPlayerIndex].score +=
-                gameState->grid[(unsigned int)newY * width + (unsigned int)newX];
-            gameState->players[currentPlayerIndex].valid++;
-            // marca celda visitada por el jugador con -(index+1) para ser consistente
-            gameState->grid[(unsigned int)newY * width + (unsigned int)newX] = -(int)currentPlayerIndex - 1;
-            gameState->players[currentPlayerIndex].x = (unsigned short)newX;
-            gameState->players[currentPlayerIndex].y = (unsigned short)newY;
-
-            validMove = true;
-            lastValidMove = time(NULL);
-
-            // Verificación de si el jugador quedó bloqueado (sin movimientos válidos)
-            bool hasValidMoves = false;
-            for (int dy = -1; dy <= 1 && !hasValidMoves; dy++)
+        // Procesar movimientos de todos los jugadores que tienen datos listos
+        bool anyValidMove = false;
+        
+        for (unsigned int i = 0; i < numPlayers; i++)
+        {
+            if (!gameState->players[i].blocked && FD_ISSET(pipePlayerToMaster[i][0], &readfds))
             {
-                for (int dx = -1; dx <= 1 && !hasValidMoves; dx++)
+                unsigned char movement;
+                ssize_t bytesRead = read(pipePlayerToMaster[i][0], &movement, 1);
+                
+                if (bytesRead != 1)
                 {
-                    if (dx == 0 && dy == 0)
-                        continue;
-                    int checkX = newX + dx;
-                    int checkY = newY + dy;
-                    if (checkX >= 0 && checkY >= 0 &&
-                        (unsigned int)checkX < width && (unsigned int)checkY < height &&
-                        gameState->grid[(unsigned int)checkY * width + (unsigned int)checkX] > 0)
-                    {
-                        hasValidMoves = true;
-                    }
+                    // Jugador desconectado o error
+                    printf("Jugador %d desconectado. Marcándolo como bloqueado.\n", i + 1);
+                    gameState->players[i].blocked = true;
+                    continue;
                 }
+
+                // Procesamiento del movimiento
+                sem_wait(&semaphores->mutexGameState);
+
+                
+                int currentX = gameState->players[i].x;
+                int currentY = gameState->players[i].y;
+                int newX = currentX, newY = currentY;
+
+                switch (movement)
+                {
+                case 0:
+                    newY--;
+                    break; // arriba
+                case 1:
+                    newX++;
+                    newY--;
+                    break; // arriba-derecha
+                case 2:
+                    newX++;
+                    break; // derecha
+                case 3:
+                    newX++;
+                    newY++;
+                    break; // abajo-derecha
+                case 4:
+                    newY++;
+                    break; // abajo
+                case 5:
+                    newX--;
+                    newY++;
+                    break; // abajo-izquierda
+                case 6:
+                    newX--;
+                    break; // izquierda
+                case 7:
+                    newX--;
+                    newY--;
+                    break; // arriba-izquierda
+                default:   /* movimiento inválido */
+                    break;
+                }
+
+                if (newX >= 0 && newY >= 0 &&
+                    (unsigned int)newX < width && (unsigned int)newY < height &&
+                    gameState->grid[(unsigned int)newY * width + (unsigned int)newX] > 0)
+                {
+                    // Movimiento válido
+                    gameState->players[i].score +=
+                        gameState->grid[(unsigned int)newY * width + (unsigned int)newX];
+                    gameState->players[i].valid++;
+                    // marca celda visitada por el jugador con -(index+1) para ser consistente
+                    gameState->grid[(unsigned int)newY * width + (unsigned int)newX] = -(int)i - 1;
+                    gameState->players[i].x = (unsigned short)newX;
+                    gameState->players[i].y = (unsigned short)newY;
+
+                    
+                    anyValidMove = true;
+
+                    // Verificación de si el jugador quedó bloqueado (sin movimientos válidos)
+                    bool hasValidMoves = false;
+                    for (int dy = -1; dy <= 1 && !hasValidMoves; dy++)
+                    {
+                        for (int dx = -1; dx <= 1 && !hasValidMoves; dx++)
+                        {
+                            if (dx == 0 && dy == 0)
+                                continue;
+                            int checkX = newX + dx;
+                            int checkY = newY + dy;
+                            if (checkX >= 0 && checkY >= 0 &&
+                                (unsigned int)checkX < width && (unsigned int)checkY < height &&
+                                gameState->grid[(unsigned int)checkY * width + (unsigned int)checkX] > 0)
+                            {
+                                hasValidMoves = true;
+                            }
+                        }
+                    }
+                    gameState->players[i].blocked = !hasValidMoves;
+                }
+                else
+                {
+                    // Movimiento inválido (puede ser porque otro jugador ya tomó esa celda)
+                    gameState->players[i].invalid++;
+                }
+
+                sem_post(&semaphores->mutexGameState);
             }
-            gameState->players[currentPlayerIndex].blocked = !hasValidMoves;
         }
-        else
+
+        // Actualizar tiempo del último movimiento válido
+        if (anyValidMove)
         {
-            // Movimiento inválido
-            gameState->players[currentPlayerIndex].invalid++;
+            lastValidMove = time(NULL);
         }
 
-        sem_post(&semaphores->mutexGameState);
-
-
-        currentPlayerIndex = currentPlayerIndex + 1;
-
-        // Notificación a la vista (si hay una y hubo un movimiento válido)
-        if (view != NULL && validMove)
+        // Notificación a la vista (si hay una y hubo algún movimiento válido)
+        if (view != NULL && anyValidMove)
         {
             sem_post(&semaphores->pendingView);
             sem_wait(&semaphores->viewEndedPrinting);
@@ -425,15 +463,17 @@ int main(int argc, char *argv[])
             {
                 if (WIFEXITED(status))
                 {
-                    printf("Jugador %d (%s): Puntaje %u, Salió con código %d\n",
+                    printf("Jugador %d (%s): Puntaje %u, Validos %d, Invalidos %d, Salió con código %d\n",
                            i + 1, gameState->players[i].playerName,
-                           gameState->players[i].score, WEXITSTATUS(status));
+                           gameState->players[i].score, gameState->players[i].valid,
+                           gameState->players[i].invalid, WEXITSTATUS(status));
                 }
                 else if (WIFSIGNALED(status))
                 {
-                    printf("Jugador %d (%s): Puntaje %u, Terminado por señal %d\n",
+                    printf("Jugador %d (%s): Puntaje %u, Validos %d, Invalidos %d, Terminado por señal %d\n",
                            i + 1, gameState->players[i].playerName,
-                           gameState->players[i].score, WTERMSIG(status));
+                           gameState->players[i].score, gameState->players[i].valid,
+                           gameState->players[i].invalid, WTERMSIG(status));
                 }
             }
         }
