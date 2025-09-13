@@ -16,7 +16,6 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define MAX_PLAYERS 9
 
 GameState *createSharedMemoryState(unsigned short width, unsigned short height, unsigned int numPlayers);
 Semaphores *createSharedMemorySemaphores(unsigned int numPlayers);

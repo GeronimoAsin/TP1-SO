@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#define MAX_PLAYERS 9
 
 typedef struct
 {
@@ -68,7 +69,7 @@ static inline GameState * connectToSharedMemoryState(unsigned int width, unsigne
     return gameState;
 }
 
-static inline Semaphores * connectToSharedMemorySemaphores() {
+static inline Semaphores * connectToSharedMemorySemaphores(void) {
     int semaphoresSmFd = shm_open("/game_sync", O_RDWR, 0666);
     if (semaphoresSmFd == -1) {
         fprintf(stderr, "Error al abrir la memoria compartida para los semáforos: errno=%d (%s)\n", errno, strerror(errno));
