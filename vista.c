@@ -15,7 +15,7 @@
 #include <ncurses.h>
 
 
-void print_state(GameState *gameState);
+void printState(GameState *gameState);
 
 static FILE *tty_in = NULL;
 static FILE *tty_out = NULL;
@@ -35,7 +35,7 @@ int myInitscr()
         return 1;
     }
 
-    const char *term = getenv("TERM");
+    char *term = getenv("TERM");
     if (!term || !*term) {
         term = "xterm-256color";
         fprintf(stderr, "myInitscr: TERM no estaba seteado, usando %s\n", term);
@@ -73,7 +73,7 @@ int myInitscr()
     return 0;
 }
 
-void end_curses()
+void endCurses()
 {
     if (scr) {
         // restaura modo normal y libera screen
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
         }
 
         // Imprimir estado actual del juego
-        print_state(gameState);
+        printState(gameState);
 
         // Notifica al máster que el estado fue impreso
         if (sem_post(&semaphores->viewEndedPrinting) == -1) {
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    end_curses();
+    endCurses();
 
     // Desmapear la memoria compartida (buena práctica)
     // (nota: no cerramos / shm_unlink aquí)
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 }
 
 // Imprime el estado del juego leyendo la grilla contigua y superponiendo jugadores
-void print_state(GameState *gameState)
+void printState(GameState *gameState)
 {
     if (gameState == NULL)
         return;
