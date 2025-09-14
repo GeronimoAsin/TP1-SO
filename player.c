@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include "estructuras.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,10 +52,8 @@ int main(int argc, char *argv[]) {
 
     while(!isOver){
 
-        // Espera a que el máster habilite este jugador
         sem_wait(&semaphores->playerCanMove[playerIndex]);
 
-        // Adquirir mutexGameState
         acquireGameStatePlayerLock(semaphores);
 
         int currentX = (int)gameState->players[playerIndex].x; // columnas
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
             for(int dx=-1; dx<=1; dx++){
                 
                 if(dx == 0 && dy == 0) 
-                continue; // ignorar la celda actual
+                continue; // ignora la celda actual
                 
                 int neighborX = currentX + dx;
                 int neighborY = currentY + dy;
@@ -95,16 +95,13 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        // Liberar mutexGameState
+
         releaseGameStatePlayerLock(semaphores);
 
-        // Validación fin de juego
         if (gameState->gameOver){
             isOver = true;
         }
 
-
-        // Enviar movimiento al master
         write(1, &movement, sizeof(movement));
 
     }

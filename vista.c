@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include "estructuras.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +41,7 @@ int myInitscr()
     if (!term || !*term) {
         term = "xterm-256color";
         fprintf(stderr, "myInitscr: TERM no estaba seteado, usando %s\n", term);
-    }//Para evitar este error, asegurarnos en el master de que el execve le pase a este proceso $TERM
+    }
 
     scr = newterm(term, tty_out, tty_in);
     if (!scr) {
@@ -52,7 +54,6 @@ int myInitscr()
     // Establecemos la pantalla creada como la actual.
     set_term(scr);
 
-    // Configuraciones habituales
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
@@ -76,7 +77,6 @@ int myInitscr()
 void endCurses()
 {
     if (scr) {
-        // restaura modo normal y libera screen
         endwin();
         delscreen(scr);
         scr = NULL;
@@ -103,7 +103,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Esperar cambios en el estado del juego
     while (1)
     {
     
@@ -113,16 +112,12 @@ int main(int argc, char *argv[])
             break;
         }
 
-        // Imprimir estado actual del juego
         printState(gameState);
 
-        // Notifica al máster que el estado fue impreso
         if (sem_post(&semaphores->viewEndedPrinting) == -1) {
             fprintf(stderr, "vista: sem_post viewEndedPrinting fallo errno=%d (%s)\n", errno, strerror(errno));
-            // no rompemos necesariamente; seguimos hasta el próximo ciclo
         }
 
-        // Si el juego terminó, termina
         if (gameState->gameOver)
         {
             break;
@@ -131,16 +126,9 @@ int main(int argc, char *argv[])
 
     endCurses();
 
-    // Desmapear la memoria compartida (buena práctica)
-    // (nota: no cerramos / shm_unlink aquí)
-    // suponer que connect... devolvió un puntero mapeado
-    // no tenemos map_size aquí; si necesitás, guardalo y munmap:
-    // munmap(gameState, map_size);
-
     return 0;
 }
 
-// Imprime el estado del juego leyendo la grilla contigua y superponiendo jugadores
 void printState(GameState *gameState)
 {
     if (gameState == NULL)
@@ -149,7 +137,6 @@ void printState(GameState *gameState)
     unsigned short W = gameState->width;
     unsigned short H = gameState->height;
 
-    // Limpio pantalla para evitar superposiciones en actualizaciones
     clear();
 
     printw("=== ESTADO DEL JUEGO ===\n");
@@ -159,7 +146,6 @@ void printState(GameState *gameState)
     {
         for (unsigned int x = 0; x < W; x++)
         {
-            // Asegurar que no quede ningún atributo/color arrastrado de impresiones anteriores
             attrset(A_NORMAL);
             int mostrado = 0;
             for (unsigned int p = 0; p < gameState->playersNumber; p++)

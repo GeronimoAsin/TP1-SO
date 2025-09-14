@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include "estructuras.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -234,10 +236,10 @@ int main(int argc, char *argv[])
 
     // Lógica principal del juego con select()
     time_t lastValidMove = time(NULL);
-    bool gameOver = false;
 
-    while (!gameOver)
+    while (1)
     {
+        
         // Verificación timeout
         if ((unsigned int)(time(NULL) - lastValidMove) >= timeout)
         {
@@ -487,14 +489,14 @@ int main(int argc, char *argv[])
             {
                 if (WIFEXITED(status))
                 {
-                    printf("Jugador %d (%s): Puntaje %u, Validos %d, Invalidos %d, Salió con código %d\n",
+                    printf("Jugador %d (%s): Puntaje %u, Validos %u, Invalidos %u, Salió con código %d\n",
                            i + 1, gameState->players[i].playerName,
                            gameState->players[i].score, gameState->players[i].valid,
                            gameState->players[i].invalid, WEXITSTATUS(status));
                 }
                 else if (WIFSIGNALED(status))
                 {
-                    printf("Jugador %d (%s): Puntaje %u, Validos %d, Invalidos %d, Terminado por señal %d\n",
+                    printf("Jugador %d (%s): Puntaje %u, Validos %u, Invalidos %u, Terminado por señal %d\n",
                            i + 1, gameState->players[i].playerName,
                            gameState->players[i].score, gameState->players[i].valid,
                            gameState->players[i].invalid, WTERMSIG(status));
@@ -598,7 +600,7 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
 
     for (unsigned int i = 0; i < numPlayers; i++)
     {
-        snprintf(gameState->players[i].playerName, sizeof(gameState->players[i].playerName), "P%d", i + 1);
+        snprintf(gameState->players[i].playerName, sizeof(gameState->players[i].playerName), "P%u", i + 1);
         gameState->players[i].x = positions[i][0];
         gameState->players[i].y = positions[i][1];
         gameState->players[i].score = 0;
