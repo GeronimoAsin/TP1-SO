@@ -14,8 +14,8 @@
 #include <errno.h>
 
 
-static inline void acquireGameStatePlayerLock(Semaphores *semaphore);
-static inline void releaseGameStatePlayerLock(Semaphores *semaphore);
+void acquireGameStatePlayerLock(Semaphores *semaphore);
+void releaseGameStatePlayerLock(Semaphores *semaphore);
 
 
 int main(int argc, char *argv[]) {
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     while(!isOver){
 
         // Espera a que el máster habilite este jugador
-        while (sem_wait(&semaphores->playerCanMove[playerIndex]) == -1 && errno == EINTR) {}
+        sem_wait(&semaphores->playerCanMove[playerIndex]);
 
         // Adquirir mutexGameState
         acquireGameStatePlayerLock(semaphores);
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-static inline void acquireGameStatePlayerLock(Semaphores *semaphore)
+void acquireGameStatePlayerLock(Semaphores *semaphore)
 {
     sem_wait(&semaphore->mutexMasterAccess);  // Espera si el master esta escribiendo
     sem_post(&semaphore->mutexMasterAccess);  // De lo contrario, libera el control del master inmediatamente
@@ -123,7 +123,7 @@ static inline void acquireGameStatePlayerLock(Semaphores *semaphore)
     sem_post(&semaphore->mutexPlayerAccess);
 }
 
-static inline void releaseGameStatePlayerLock(Semaphores *semaphore)
+void releaseGameStatePlayerLock(Semaphores *semaphore)
 {
     sem_wait(&semaphore->mutexPlayerAccess);
     if (--semaphore->playersReadingState == 0) {

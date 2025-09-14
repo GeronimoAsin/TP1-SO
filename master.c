@@ -21,6 +21,8 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
 Semaphores *createSharedMemorySemaphores(unsigned int numPlayers);
 void cleanup_resources(unsigned int width, unsigned int height, unsigned int numPlayers, GameState *gameState, Semaphores *semaphores);
 void signal_handler(int sig);
+void masterEnters(Semaphores *semaphores);
+void masterLeaves(Semaphores *semaphores);
 
 // Variables globales para cleanup en señales
 static GameState *g_gameState = NULL;
@@ -318,7 +320,7 @@ int main(int argc, char *argv[])
                 read(pipePlayerToMaster[i][0], &movement, 1);
 
                 // Procesamiento del movimiento
-                sem_wait(&semaphores->mutexGameState);
+                masterEnters(semaphores);
 
                 
                 int currentX = gameState->players[i].x;
@@ -400,8 +402,8 @@ int main(int argc, char *argv[])
                     // Movimiento inválido (puede ser porque otro jugador ya tomó esa celda)
                     gameState->players[i].invalid++;
                 }
-
-                sem_post(&semaphores->mutexGameState);
+                masterLeaves(semaphores);
+                
             }
         }
 
@@ -410,6 +412,40 @@ int main(int argc, char *argv[])
         {
             lastValidMove = time(NULL);
         }
+
+        // Verificación de bloqueo o no de todos los jugadores después de procesar movimientos
+        masterEnters(semaphores);
+        for (unsigned int i = 0; i < numPlayers; i++)
+        {
+            if (!gameState->players[i].blocked)
+            {
+                bool hasValidMoves = false;
+                int currentX = gameState->players[i].x;
+                int currentY = gameState->players[i].y;
+                
+                for (int dy = -1; dy <= 1 && !hasValidMoves; dy++)
+                {
+                    for (int dx = -1; dx <= 1 && !hasValidMoves; dx++)
+                    {
+                        if (dx == 0 && dy == 0) continue;
+                        int checkX = currentX + dx;
+                        int checkY = currentY + dy;
+                        if (checkX >= 0 && checkY >= 0 &&
+                            (unsigned int)checkX < width && (unsigned int)checkY < height &&
+                            gameState->grid[(unsigned int)checkY * width + (unsigned int)checkX] > 0)
+                        {
+                            hasValidMoves = true;
+                        }
+                    }
+                }
+                
+                if (!hasValidMoves)
+                {
+                    gameState->players[i].blocked = true;
+                }
+            }
+        }
+        masterLeaves(semaphores);
 
         // Notificación a la vista (si hay una y hubo algún movimiento válido)
         if (view != NULL && anyValidMove)
@@ -421,9 +457,9 @@ int main(int argc, char *argv[])
     }
 
     // Marcado del fin del juego
-    sem_wait(&semaphores->mutexGameState);
+    masterEnters(semaphores);
     gameState->gameOver = true;
-    sem_post(&semaphores->mutexGameState);
+    masterLeaves(semaphores);
 
     // Notificación a la vista del final (si existe)
     if (view != NULL)
@@ -663,9 +699,13 @@ void signal_handler(int sig)
 }
 
 
+void masterEnters(Semaphores *semaphores){
+    sem_wait(&semaphores->mutexMasterAccess);
+    sem_wait(&semaphores->mutexGameState);
+    sem_post(&semaphores->mutexMasterAccess);
+}
 
 
-
-
-
-
+void masterLeaves(Semaphores *semaphores){
+    sem_post(&semaphores->mutexGameState);
+}
