@@ -63,7 +63,6 @@ static inline GameState * connectToSharedMemoryState(unsigned int width, unsigne
         exit(1);
     }
 
-    // cerrar fd solo si no es 0/1/2
     if (gameStateSmFd > STDERR_FILENO) close(gameStateSmFd);
 
     return gameState;
@@ -83,7 +82,6 @@ static inline Semaphores * connectToSharedMemorySemaphores(void) {
         exit(1);
     }
 
-    // cerrar fd solo si no es 0/1/2
     if (semaphoresSmFd > STDERR_FILENO) close(semaphoresSmFd);
 
     return semaphores;
