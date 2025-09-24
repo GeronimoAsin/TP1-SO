@@ -163,12 +163,11 @@ void printState(GameState *gameState)
             if (!mostrado)
             {
                 int v = gameState->grid[y * W + x];
-                if(v < 0){
+                if(v <= 0){
                     int idx = -v;
-                    if (idx > 9) idx = 9;
-                    attron(COLOR_PAIR(idx));
-                    printw("%2d ", -v);
-                    attroff(COLOR_PAIR(idx));
+                    attron(COLOR_PAIR(idx + 1));
+                    printw("%2d ", idx + 1);
+                    attroff(COLOR_PAIR(idx + 1));
                 } else {
                     // v == 0 (si apareciera) o v>0
                     printw("%2d ", v);
@@ -183,8 +182,8 @@ void printState(GameState *gameState)
     {
         Player *pl = &gameState->players[i];
         attron(COLOR_PAIR((i % 9) + 1));
-        printw("  %u: %s - Puntaje: %u, Pos: (%u,%u)%s\n",
-               i + 1, pl->playerName, pl->score, pl->x, pl->y, pl->blocked ? " [BLOQ]" : "");
+        printw("  %u: %s - Puntaje: %u, Pos: (%u,%u)%s Inválidos: %u Válidos: %u\n",
+               i + 1, pl->playerName, pl->score, pl->x, pl->y, pl->blocked ? " [BLOQ]" : "", pl->invalid, pl->valid);
         attroff(COLOR_PAIR((i % 9) + 1));
     }
 

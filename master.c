@@ -18,7 +18,6 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-
 GameState *createSharedMemoryState(unsigned short width, unsigned short height, unsigned int numPlayers);
 Semaphores *createSharedMemorySemaphores(unsigned int numPlayers);
 void cleanup_resources(unsigned int width, unsigned int height, unsigned int numPlayers, GameState *gameState, Semaphores *semaphores);
@@ -31,10 +30,11 @@ static GameState *g_gameState = NULL;
 static Semaphores *g_semaphores = NULL;
 static unsigned int g_width = 0, g_height = 0, g_numPlayers = 0;
 
-void sleep_ms(int delay) {
+void sleep_ms(int delay)
+{
     struct timespec ts;
-    ts.tv_sec = delay / 1000;                // parte entera en segundos
-    ts.tv_nsec = (delay % 1000) * 1000000L;  // resto en nanosegundos
+    ts.tv_sec = delay / 1000;               // parte entera en segundos
+    ts.tv_nsec = (delay % 1000) * 1000000L; // resto en nanosegundos
     nanosleep(&ts, NULL);
 }
 
@@ -58,35 +58,35 @@ int main(int argc, char *argv[])
         {
             width = atoi(argv[i + 1]);
             if (width < 10)
-                width = 10; 
-            i++;            
+                width = 10;
+            i++;
         }
         else if (!strcmp(argv[i], "-h") && i + 1 < argc)
         {
             height = atoi(argv[i + 1]);
             if (height < 10)
-                height = 10; 
-            i++;             
+                height = 10;
+            i++;
         }
         else if (!strcmp(argv[i], "-d") && i + 1 < argc)
         {
             delay = atoi(argv[i + 1]);
-            i++; 
+            i++;
         }
         else if (!strcmp(argv[i], "-t") && i + 1 < argc)
         {
             timeout = atoi(argv[i + 1]);
-            i++; 
+            i++;
         }
         else if (!strcmp(argv[i], "-s") && i + 1 < argc)
         {
             seed = atoi(argv[i + 1]);
-            i++; 
+            i++;
         }
         else if (!strcmp(argv[i], "-v") && i + 1 < argc)
         {
             view = argv[i + 1];
-            i++; 
+            i++;
         }
         else if (!strcmp(argv[i], "-p"))
         {
@@ -114,7 +114,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Error: Se requiere al menos un jugador con -p\n");
         exit(1);
     }
-
 
     // Establecimiento de la semilla para números aleatorios
     srand(seed);
@@ -203,6 +202,20 @@ int main(int argc, char *argv[])
         if (pid == 0)
         {
             // Proceso jugador
+            for (unsigned int j = 0; j < i; j++)
+            {
+                close(pipePlayerToMaster[j][0]);
+                close(pipePlayerToMaster[j][1]);
+            }
+
+            if (view != NULL)
+            {
+                if (pipeVistaToMaster[0] != -1)
+                    close(pipeVistaToMaster[0]);
+                if (pipeVistaToMaster[1] != -1)
+                    close(pipeVistaToMaster[1]);
+            }
+
             close(pipePlayerToMaster[i][0]);
             if (dup2(pipePlayerToMaster[i][1], STDOUT_FILENO) == -1)
             { // jugador escribe al fd 1
@@ -221,9 +234,9 @@ int main(int argc, char *argv[])
         }
 
         // Proceso máster
-        gameState->players[i].pid = pid; 
-        player_pids[i] = pid;            
-        close(pipePlayerToMaster[i][1]); 
+        gameState->players[i].pid = pid;
+        player_pids[i] = pid;
+        close(pipePlayerToMaster[i][1]);
     }
 
     // Impresión del estado inicial (en caso de tener vista)
@@ -239,11 +252,11 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        
+
         // Verificación timeout
         if ((unsigned int)(time(NULL) - lastValidMove) >= timeout)
         {
-            break; //Si se supera el timeout, termina el juego
+            break; // Si se supera el timeout, termina el juego
         }
 
         // Verificación de si todos los jugadores están bloqueados
@@ -258,7 +271,7 @@ int main(int argc, char *argv[])
 
         if (!anyPlayerActive)
         {
-            break; //Si todos estan bloqueados, termina el juego
+            break; // Si todos estan bloqueados, termina el juego
         }
 
         // Habilitación a todos los jugadores activos para que puedan moverse
@@ -274,7 +287,7 @@ int main(int argc, char *argv[])
         fd_set readfds;
         FD_ZERO(&readfds);
         int maxfd = -1;
-        
+
         for (unsigned int i = 0; i < numPlayers; i++)
         {
             if (!gameState->players[i].blocked)
@@ -295,11 +308,11 @@ int main(int argc, char *argv[])
 
         // Uso de select() para esperar movimientos de cualquier jugador
         struct timeval selectTimeout;
-        selectTimeout.tv_sec = 1;  // 1 segundo de timeout para el select
+        selectTimeout.tv_sec = 1; // 1 segundo de timeout para el select
         selectTimeout.tv_usec = 0;
 
         int selectResult = select(maxfd + 1, &readfds, NULL, NULL, &selectTimeout);
-        
+
         if (selectResult == -1)
         {
             perror("select failed");
@@ -313,18 +326,27 @@ int main(int argc, char *argv[])
 
         // Procesamiento de movimientos de todos los jugadores que tienen datos listos
         bool anyValidMove = false;
-        
+
         for (unsigned int i = 0; i < numPlayers; i++)
         {
             if (!gameState->players[i].blocked && FD_ISSET(pipePlayerToMaster[i][0], &readfds))
             {
                 unsigned char movement;
-                read(pipePlayerToMaster[i][0], &movement, 1);
+                int bytesRead = read(pipePlayerToMaster[i][0], &movement, 1);
+                if (bytesRead == -1)
+                {
+                    perror("read jugador");
+                    continue;
+                }
+                else if (bytesRead == 0)
+                {
+                    gameState->players[i].blocked = true;
+                    continue;
+                }
 
                 // Procesamiento del movimiento
                 masterEnters(semaphores);
 
-                
                 int currentX = gameState->players[i].x;
                 int currentY = gameState->players[i].y;
                 int newX = currentX, newY = currentY;
@@ -371,12 +393,11 @@ int main(int argc, char *argv[])
                     gameState->players[i].score +=
                         gameState->grid[(unsigned int)newY * width + (unsigned int)newX];
                     gameState->players[i].valid++;
-                    // marca celda visitada por el jugador con -(index+1) 
-                    gameState->grid[(unsigned int)newY * width + (unsigned int)newX] = -(int)i - 1;
+                    // marca celda visitada por el jugador con -(index+1)
+                    gameState->grid[(unsigned int)newY * width + (unsigned int)newX] = -(int)i;
                     gameState->players[i].x = (unsigned short)newX;
                     gameState->players[i].y = (unsigned short)newY;
 
-                    
                     anyValidMove = true;
 
                     // Verificación de si el jugador quedó bloqueado (sin movimientos válidos)
@@ -405,7 +426,6 @@ int main(int argc, char *argv[])
                     gameState->players[i].invalid++;
                 }
                 masterLeaves(semaphores);
-                
             }
         }
 
@@ -424,12 +444,13 @@ int main(int argc, char *argv[])
                 bool hasValidMoves = false;
                 int currentX = gameState->players[i].x;
                 int currentY = gameState->players[i].y;
-                
+
                 for (int dy = -1; dy <= 1 && !hasValidMoves; dy++)
                 {
                     for (int dx = -1; dx <= 1 && !hasValidMoves; dx++)
                     {
-                        if (dx == 0 && dy == 0) continue;
+                        if (dx == 0 && dy == 0)
+                            continue;
                         int checkX = currentX + dx;
                         int checkY = currentY + dy;
                         if (checkX >= 0 && checkY >= 0 &&
@@ -440,7 +461,7 @@ int main(int argc, char *argv[])
                         }
                     }
                 }
-                
+
                 if (!hasValidMoves)
                 {
                     gameState->players[i].blocked = true;
@@ -540,7 +561,7 @@ int main(int argc, char *argv[])
 
 GameState *createSharedMemoryState(unsigned short width, unsigned short height, unsigned int numPlayers)
 {
-    // Desacopla memorias compartidas anteriores 
+    // Desacopla memorias compartidas anteriores
     shm_unlink("/game_state");
 
     int gameStateSmFd = shm_open("/game_state", O_CREAT | O_RDWR, 0666);
@@ -606,11 +627,11 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
         gameState->players[i].score = 0;
         gameState->players[i].invalid = 0;
         gameState->players[i].valid = 0;
-        gameState->players[i].pid = 0; 
+        gameState->players[i].pid = 0;
         gameState->players[i].blocked = false;
         unsigned int pos = gameState->players[i].y * width + gameState->players[i].x;
-        gameState->players[i].score += cells[pos]; 
-        cells[pos] = -(int)i - 1;                  
+        gameState->players[i].score += cells[pos];
+        cells[pos] = -(int)i;
     }
 
     return gameState;
@@ -618,9 +639,8 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
 
 Semaphores *createSharedMemorySemaphores(unsigned int numPlayers)
 {
-    // Desacopla memorias compartidas anteriores 
+    // Desacopla memorias compartidas anteriores
     shm_unlink("/game_sync");
-
 
     int semaphoresSmFd = shm_open("/game_sync", O_CREAT | O_RDWR, 0666);
     if (semaphoresSmFd == -1)
@@ -700,14 +720,14 @@ void signal_handler(int sig)
     exit(sig);
 }
 
-
-void masterEnters(Semaphores *semaphores){
+void masterEnters(Semaphores *semaphores)
+{
     sem_wait(&semaphores->mutexMasterAccess);
     sem_wait(&semaphores->mutexGameState);
     sem_post(&semaphores->mutexMasterAccess);
 }
 
-
-void masterLeaves(Semaphores *semaphores){
+void masterLeaves(Semaphores *semaphores)
+{
     sem_post(&semaphores->mutexGameState);
 }
