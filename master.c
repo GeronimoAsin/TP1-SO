@@ -141,15 +141,10 @@ int main(int argc, char *argv[])
         player_pids[i] = -1;
     }
 
-    // Creación proceso vista y canal de comunicación vista->master (si se especifica vista)
-    int pipeVistaToMaster[2] = {-1, -1};
+    // Creación proceso vista
     if (view != NULL)
     {
-        if (pipe(pipeVistaToMaster) == -1)
-        {
-            perror("pipe Vista->master");
-            exit(1);
-        }
+
 
         char wbuf[16], hbuf[16];
         snprintf(wbuf, sizeof(wbuf), "%u", width);
@@ -164,21 +159,12 @@ int main(int argc, char *argv[])
 
         if (vista_pid == 0)
         {
-            // Proceso hijo (vista)
-            close(pipeVistaToMaster[0]); // Cierro el extremo de lectura
-            if (dup2(pipeVistaToMaster[1], STDOUT_FILENO) == -1)
-            {
-                perror("dup2 stdout vista");
-                exit(1);
-            }
-            close(pipeVistaToMaster[1]); // Cierro el extremo de escritura duplicado
             char *vista_argv[] = {view, wbuf, hbuf, NULL};
             char *envp[] = {getenv("TERM"), NULL};
             execve(view, vista_argv, envp);
             perror("execve vista");
             exit(1);
         }
-        close(pipeVistaToMaster[1]);
     }
 
     // Creación de los procesos de los jugadores y canales de comunicación player->master
@@ -208,15 +194,6 @@ int main(int argc, char *argv[])
                 close(pipePlayerToMaster[j][1]);
             }
 
-            if (view != NULL)
-            {
-                if (pipeVistaToMaster[0] != -1)
-                    close(pipeVistaToMaster[0]);
-                if (pipeVistaToMaster[1] != -1)
-                    close(pipeVistaToMaster[1]);
-            }
-
-            close(pipePlayerToMaster[i][0]);
             if (dup2(pipePlayerToMaster[i][1], STDOUT_FILENO) == -1)
             { // jugador escribe al fd 1
                 perror("dup2 stdout jugador");
@@ -545,10 +522,7 @@ int main(int argc, char *argv[])
                 printf("Vista: Terminada por señal %d\n", WTERMSIG(status));
             }
         }
-        if (pipeVistaToMaster[0] != -1)
-        {
-            close(pipeVistaToMaster[0]);
-        }
+
     }
 
     printf("========================\n");
