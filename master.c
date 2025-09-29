@@ -604,7 +604,6 @@ GameState *createSharedMemoryState(unsigned short width, unsigned short height, 
         gameState->players[i].pid = 0;
         gameState->players[i].blocked = false;
         unsigned int pos = gameState->players[i].y * width + gameState->players[i].x;
-        gameState->players[i].score += cells[pos];
         cells[pos] = -(int)i;
     }
 
